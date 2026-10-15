@@ -23,6 +23,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 /**
  * Phone acts as a Bluetooth HID remote (keyboard + media keys).
@@ -71,10 +72,22 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         buildUi();
 
-        if (Build.VERSION.SDK_INT >= 31
-                && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1);
+        if (Build.VERSION.SDK_INT >= 31) {
+            List<String> perms = new ArrayList<>();
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                perms.add(Manifest.permission.BLUETOOTH_CONNECT);
+            }
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+                perms.add(Manifest.permission.BLUETOOTH_ADVERTISE);
+            }
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                perms.add(Manifest.permission.BLUETOOTH_SCAN);
+            }
+            if (!perms.isEmpty()) {
+                requestPermissions(perms.toArray(new String[0]), 1);
+            } else {
+                initBluetooth();
+            }
         } else {
             initBluetooth();
         }
@@ -82,56 +95,84 @@ public class MainActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int code, String[] p, int[] r) {
-        if (r.length > 0 && r[0] == PackageManager.PERMISSION_GRANTED) initBluetooth();
-        else status.setText("Bluetooth permission denied");
+        boolean allGranted = true;
+        for (int res : r) {
+            if (res != PackageManager.PERMISSION_GRANTED) {
+                allGranted = false;
+                break;
+            }
+        }
+        if (allGranted) {
+            initBluetooth();
+        } else {
+            status.setText("Bluetooth permissions denied. Please allow Nearby devices / Bluetooth.");
+        }
     }
 
     private void initBluetooth() {
         BluetoothManager bm = getSystemService(BluetoothManager.class);
-        adapter = bm.getAdapter();
+        adapter = bm != null ? bm.getAdapter() : BluetoothAdapter.getDefaultAdapter();
         if (adapter == null || !adapter.isEnabled()) {
-            status.setText("Turn Bluetooth on, then reopen the app");
+            status.setText("Turn Bluetooth on, then reopen or tap Retry");
             return;
         }
+        status.setText("Connecting Bluetooth HID service...");
         adapter.getProfileProxy(this, new BluetoothProfile.ServiceListener() {
             @Override
             public void onServiceConnected(int profile, BluetoothProfile proxy) {
                 hid = (BluetoothHidDevice) proxy;
-                registerHid();
+                ui.postDelayed(() -> registerHid(), 300);
             }
 
             @Override
             public void onServiceDisconnected(int profile) {
                 hid = null;
+                ui.post(() -> status.setText("HID service disconnected"));
             }
         }, BluetoothProfile.HID_DEVICE);
     }
 
     private void registerHid() {
+        if (hid == null) return;
+        try {
+            hid.unregisterApp();
+        } catch (Exception ignored) {}
+
         BluetoothHidDeviceAppSdpSettings sdp = new BluetoothHidDeviceAppSdpSettings(
                 "BT Remote", "Phone remote", "Me",
-                BluetoothHidDevice.SUBCLASS1_COMBO, DESCRIPTOR);
+                BluetoothHidDevice.SUBCLASS1_NONE, DESCRIPTOR);
 
-        hid.registerApp(sdp, null, null, getMainExecutor(),
+        boolean initiated = hid.registerApp(sdp, null, null, Executors.newSingleThreadExecutor(),
                 new BluetoothHidDevice.Callback() {
                     @Override
                     public void onAppStatusChanged(BluetoothDevice d, boolean registered) {
-                        status.setText(registered
-                                ? "Ready. Tap Connect and pick your TV."
-                                : "HID not registered (device may not support it)");
+                        ui.post(() -> {
+                            if (registered) {
+                                status.setText("Ready. Tap Connect and pick your TV.");
+                            } else {
+                                status.setText("HID not registered. Tap 'Retry Registration'. If still failing, check Xiaomi App Info > Other permissions.");
+                            }
+                        });
                     }
 
                     @Override
                     public void onConnectionStateChanged(BluetoothDevice d, int state) {
-                        if (state == BluetoothProfile.STATE_CONNECTED) {
-                            target = d;
-                            status.setText("Connected: " + d.getName());
-                        } else if (state == BluetoothProfile.STATE_DISCONNECTED) {
-                            if (d.equals(target)) target = null;
-                            status.setText("Disconnected");
-                        }
+                        ui.post(() -> {
+                            if (state == BluetoothProfile.STATE_CONNECTED) {
+                                target = d;
+                                String name = d.getName() != null ? d.getName() : d.getAddress();
+                                status.setText("Connected: " + name);
+                            } else if (state == BluetoothProfile.STATE_DISCONNECTED) {
+                                if (d.equals(target)) target = null;
+                                status.setText("Disconnected");
+                            }
+                        });
                     }
                 });
+
+        if (!initiated) {
+            ui.post(() -> status.setText("registerApp failed. Tap 'Retry Registration'."));
+        }
     }
 
     private void pickDevice() {
@@ -182,7 +223,14 @@ public class MainActivity extends Activity {
         status.setTextSize(16);
         root.addView(status);
 
-        root.addView(btn("Connect", v -> pickDevice()));
+        root.addView(row(
+                btn("Connect", v -> pickDevice()),
+                btn("Retry / Refresh", v -> {
+                    status.setText("Re-registering...");
+                    if (hid != null) registerHid();
+                    else initBluetooth();
+                })
+        ));
         root.addView(row(
                 btn("Power", v -> consumer(C_POWER)),
                 btn("Home", v -> consumer(C_HOME)),
