@@ -260,7 +260,7 @@ public class MainActivity extends Activity {
 
         BluetoothHidDeviceAppSdpSettings sdp = new BluetoothHidDeviceAppSdpSettings(
                 "BT Remote", "Phone remote", "Me",
-                BluetoothHidDevice.SUBCLASS1_NONE, DESCRIPTOR);
+                BluetoothHidDevice.SUBCLASS1_COMBO, DESCRIPTOR);
 
         boolean started = hid.registerApp(sdp, null, null, Executors.newSingleThreadExecutor(),
                 new BluetoothHidDevice.Callback() {
@@ -658,6 +658,13 @@ public class MainActivity extends Activity {
                 tabs[i].setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
             }
         }
+
+        if (index == 1) {
+            ui.postDelayed(() -> {
+                mouseMove(2, 2);
+                mouseMove(-2, -2);
+            }, 100);
+        }
     }
 
     // ---- 1. Authentic Remote View ----
@@ -762,7 +769,7 @@ public class MainActivity extends Activity {
             private float lastX, lastY;
             private long downTime;
             private boolean moved = false;
-            private static final float SENSITIVITY = 1.4f;
+            private static final float SENSITIVITY = 2.2f;
 
             @Override
             public boolean onTouch(View view, MotionEvent event) {
@@ -819,6 +826,14 @@ public class MainActivity extends Activity {
         scrollRow.addView(btnScrollUp);
         scrollRow.addView(btnScrollDown);
         v.addView(scrollRow);
+
+        TextView guide = new TextView(this);
+        guide.setText("💻 Laptop/PC: Cursor appears everywhere.\n📺 Android TV: Use D-Pad for TV menus. Cursor appears in web browsers, media players, and mouse-enabled apps.");
+        guide.setTextColor(C_TEXT_MUTED);
+        guide.setTextSize(11);
+        guide.setGravity(Gravity.CENTER);
+        guide.setPadding(dp(8), dp(12), dp(8), dp(4));
+        v.addView(guide);
 
         return v;
     }
