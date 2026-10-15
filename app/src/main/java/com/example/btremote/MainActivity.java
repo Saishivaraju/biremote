@@ -36,22 +36,22 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 
 /**
- * Clean & Simple Bluetooth HID Universal Remote, Touchpad & Keyboard.
- * Works seamlessly with Android TV, Google TV, PC/Laptop, Projectors & Media Players.
+ * Universal Bluetooth Remote Control, Mouse & Keyboard.
+ * Serverless controller for Android TV, Google TV, Fire TV, PC, Laptop & Projectors.
  */
 public class MainActivity extends Activity {
 
-    // Report IDs
+    // Report IDs: 1=Keyboard, 2=Consumer (Standard TV remote layout), 3=Mouse
     private static final int ID_KEYBOARD = 1;
-    private static final int ID_MOUSE = 2;
-    private static final int ID_CONSUMER = 3;
+    private static final int ID_CONSUMER = 2;
+    private static final int ID_MOUSE = 3;
 
-    // Keyboard Usages (Usage Page 0x07)
+    // Keyboard usages (Usage Page 0x07)
     private static final byte K_RIGHT = 0x4F, K_LEFT = 0x50, K_DOWN = 0x51, K_UP = 0x52;
     private static final byte K_ENTER = 0x28, K_ESC = 0x29, K_BACKSPACE = 0x2A;
     private static final byte K_TAB = 0x2B, K_SPACE = 0x2C, K_MENU = 0x65;
 
-    // Consumer Usages (Usage Page 0x0C)
+    // Consumer usages (Usage Page 0x0C)
     private static final int C_POWER = 0x30;
     private static final int C_VOL_UP = 0xE9, C_VOL_DOWN = 0xEA, C_MUTE = 0xE2;
     private static final int C_PLAY_PAUSE = 0xCD;
@@ -63,79 +63,79 @@ public class MainActivity extends Activity {
             0x05, 0x01,                    // Usage Page (Generic Desktop)
             0x09, 0x06,                    // Usage (Keyboard)
             (byte) 0xA1, 0x01,             // Collection (Application)
-            (byte) 0x85, (byte) ID_KEYBOARD,//   Report ID (1)
-            0x05, 0x07,                    //   Usage Page (Key Codes)
-            0x19, (byte) 0xE0,             //   Usage Minimum (224)
-            0x29, (byte) 0xE7,             //   Usage Maximum (231)
-            0x15, 0x00,                    //   Logical Minimum (0)
-            0x25, 0x01,                    //   Logical Maximum (1)
-            0x75, 0x01,                    //   Report Size (1)
-            (byte) 0x95, 0x08,             //   Report Count (8)
-            (byte) 0x81, 0x02,             //   Input (Data, Variable, Absolute) - modifiers
-            (byte) 0x95, 0x01,             //   Report Count (1)
-            0x75, 0x08,                    //   Report Size (8)
-            (byte) 0x81, 0x01,             //   Input (Constant) - reserved
-            (byte) 0x95, 0x06,             //   Report Count (6)
-            0x75, 0x08,                    //   Report Size (8)
-            0x15, 0x00,                    //   Logical Minimum (0)
-            0x25, 0x65,                    //   Logical Maximum (101)
-            0x05, 0x07,                    //   Usage Page (Key Codes)
-            0x19, 0x00,                    //   Usage Minimum (0)
-            0x29, 0x65,                    //   Usage Maximum (101)
-            (byte) 0x81, 0x00,             //   Input (Data, Array)
-            (byte) 0xC0,                   // End Collection (Keyboard)
+            (byte) 0x85, (byte) ID_KEYBOARD,// Report ID (1)
+            0x05, 0x07,                    // Usage Page (Key Codes)
+            0x19, (byte) 0xE0,             // Usage Minimum (224)
+            0x29, (byte) 0xE7,             // Usage Maximum (231)
+            0x15, 0x00,                    // Logical Minimum (0)
+            0x25, 0x01,                    // Logical Maximum (1)
+            0x75, 0x01,                    // Report Size (1)
+            (byte) 0x95, 0x08,             // Report Count (8)
+            (byte) 0x81, 0x02,             // Input (Data, Variable, Absolute)
+            (byte) 0x95, 0x01,             // Report Count (1)
+            0x75, 0x08,                    // Report Size (8)
+            (byte) 0x81, 0x01,             // Input (Constant)
+            (byte) 0x95, 0x06,             // Report Count (6)
+            0x75, 0x08,                    // Report Size (8)
+            0x15, 0x00,                    // Logical Minimum (0)
+            0x25, 0x65,                    // Logical Maximum (101)
+            0x05, 0x07,                    // Usage Page (Key Codes)
+            0x19, 0x00,                    // Usage Minimum (0)
+            0x29, 0x65,                    // Usage Maximum (101)
+            (byte) 0x81, 0x00,             // Input (Data, Array)
+            (byte) 0xC0,                   // End Collection
 
-            // 2. Mouse (Report ID 2)
-            0x05, 0x01,                    // Usage Page (Generic Desktop)
-            0x09, 0x02,                    // Usage (Mouse)
-            (byte) 0xA1, 0x01,             // Collection (Application)
-            (byte) 0x85, (byte) ID_MOUSE,  //   Report ID (2)
-            0x09, 0x01,                    //   Usage (Pointer)
-            (byte) 0xA1, 0x00,             //   Collection (Physical)
-            0x05, 0x09,                    //     Usage Page (Buttons)
-            0x19, 0x01,                    //     Usage Minimum (1)
-            0x29, 0x03,                    //     Usage Maximum (3)
-            0x15, 0x00,                    //     Logical Minimum (0)
-            0x25, 0x01,                    //     Logical Maximum (1)
-            (byte) 0x95, 0x03,             //     Report Count (3)
-            0x75, 0x01,                    //     Report Size (1)
-            (byte) 0x81, 0x02,             //     Input (Data, Variable, Absolute)
-            (byte) 0x95, 0x01,             //     Report Count (1)
-            0x75, 0x05,                    //     Report Size (5)
-            (byte) 0x81, 0x03,             //     Input (Constant, Variable, Absolute)
-            0x05, 0x01,                    //     Usage Page (Generic Desktop)
-            0x09, 0x30,                    //     Usage (X)
-            0x09, 0x31,                    //     Usage (Y)
-            0x15, (byte) 0x81,             //     Logical Minimum (-127)
-            0x25, 0x7F,                    //     Logical Maximum (127)
-            0x75, 0x08,                    //     Report Size (8)
-            (byte) 0x95, 0x02,             //     Report Count (2)
-            (byte) 0x81, 0x06,             //     Input (Data, Variable, Relative)
-            0x09, 0x38,                    //     Usage (Wheel)
-            0x15, (byte) 0x81,             //     Logical Minimum (-127)
-            0x25, 0x7F,                    //     Logical Maximum (127)
-            0x75, 0x08,                    //     Report Size (8)
-            (byte) 0x95, 0x01,             //     Report Count (1)
-            (byte) 0x81, 0x06,             //     Input (Data, Variable, Relative)
-            (byte) 0xC0,                   //   End Collection (Physical)
-            (byte) 0xC0,                   // End Collection (Mouse)
-
-            // 3. Consumer / Media Remote (Report ID 3)
+            // 2. Consumer Remote Control (Report ID 2)
             0x05, 0x0C,                    // Usage Page (Consumer Devices)
             0x09, 0x01,                    // Usage (Consumer Control)
             (byte) 0xA1, 0x01,             // Collection (Application)
-            (byte) 0x85, (byte) ID_CONSUMER,//  Report ID (3)
-            0x15, 0x00,                    //   Logical Minimum (0)
-            0x26, (byte) 0xFF, 0x03,       //   Logical Maximum (1023)
-            0x19, 0x00,                    //   Usage Minimum (0)
-            0x2A, (byte) 0xFF, 0x03,       //   Usage Maximum (1023)
-            0x75, 0x10,                    //   Report Size (16)
-            (byte) 0x95, 0x01,             //   Report Count (1)
-            (byte) 0x81, 0x00,             //   Input (Data, Array)
-            (byte) 0xC0                    // End Collection (Consumer)
+            (byte) 0x85, (byte) ID_CONSUMER,// Report ID (2)
+            0x15, 0x00,                    // Logical Minimum (0)
+            0x26, (byte) 0xFF, 0x03,       // Logical Maximum (1023)
+            0x19, 0x00,                    // Usage Minimum (0)
+            0x2A, (byte) 0xFF, 0x03,       // Usage Maximum (1023)
+            0x75, 0x10,                    // Report Size (16)
+            (byte) 0x95, 0x01,             // Report Count (1)
+            (byte) 0x81, 0x00,             // Input (Data, Array)
+            (byte) 0xC0,                   // End Collection
+
+            // 3. Mouse (Report ID 3)
+            0x05, 0x01,                    // Usage Page (Generic Desktop)
+            0x09, 0x02,                    // Usage (Mouse)
+            (byte) 0xA1, 0x01,             // Collection (Application)
+            (byte) 0x85, (byte) ID_MOUSE,  // Report ID (3)
+            0x09, 0x01,                    // Usage (Pointer)
+            (byte) 0xA1, 0x00,             // Collection (Physical)
+            0x05, 0x09,                    // Usage Page (Buttons)
+            0x19, 0x01,                    // Usage Minimum (1)
+            0x29, 0x03,                    // Usage Maximum (3)
+            0x15, 0x00,                    // Logical Minimum (0)
+            0x25, 0x01,                    // Logical Maximum (1)
+            (byte) 0x95, 0x03,             // Report Count (3)
+            0x75, 0x01,                    // Report Size (1)
+            (byte) 0x81, 0x02,             // Input (Data, Variable, Absolute)
+            (byte) 0x95, 0x01,             // Report Count (1)
+            0x75, 0x05,                    // Report Size (5)
+            (byte) 0x81, 0x03,             // Input (Constant)
+            0x05, 0x01,                    // Usage Page (Generic Desktop)
+            0x09, 0x30,                    // Usage (X)
+            0x09, 0x31,                    // Usage (Y)
+            0x15, (byte) 0x81,             // Logical Minimum (-127)
+            0x25, 0x7F,                    // Logical Maximum (127)
+            0x75, 0x08,                    // Report Size (8)
+            (byte) 0x95, 0x02,             // Report Count (2)
+            (byte) 0x81, 0x06,             // Input (Data, Variable, Relative)
+            0x09, 0x38,                    // Usage (Wheel)
+            0x15, (byte) 0x81,             // Logical Minimum (-127)
+            0x25, 0x7F,                    // Logical Maximum (127)
+            0x75, 0x08,                    // Report Size (8)
+            (byte) 0x95, 0x01,             // Report Count (1)
+            (byte) 0x81, 0x06,             // Input (Data, Variable, Relative)
+            (byte) 0xC0,                   // End Collection (Physical)
+            (byte) 0xC0                    // End Collection (Mouse)
     };
 
-    // Clean, modern, unified color palette
+    // Clean modern theme
     private static final int C_BG = Color.parseColor("#11151E");
     private static final int C_CARD = Color.parseColor("#1B212D");
     private static final int C_CARD_BORDER = Color.parseColor("#283144");
@@ -223,10 +223,10 @@ public class MainActivity extends Activity {
         BluetoothManager bm = getSystemService(BluetoothManager.class);
         adapter = bm != null ? bm.getAdapter() : BluetoothAdapter.getDefaultAdapter();
         if (adapter == null || !adapter.isEnabled()) {
-            updateStatus("Bluetooth is OFF. Turn ON Bluetooth", false);
+            updateStatus("Bluetooth is OFF • Turn ON Bluetooth", false);
             return;
         }
-        updateStatus("Initializing HID...", false);
+        updateStatus("Connecting Bluetooth HID...", false);
         adapter.getProfileProxy(this, new BluetoothProfile.ServiceListener() {
             @Override
             public void onServiceConnected(int profile, BluetoothProfile proxy) {
@@ -248,9 +248,10 @@ public class MainActivity extends Activity {
             hid.unregisterApp();
         } catch (Exception ignored) {}
 
+        // Use SUBCLASS1_NONE (Standard remote control descriptor accepted by all TVs)
         BluetoothHidDeviceAppSdpSettings sdp = new BluetoothHidDeviceAppSdpSettings(
-                "BT Remote", "Universal Remote", "Google",
-                BluetoothHidDevice.SUBCLASS1_COMBO, DESCRIPTOR);
+                "BT Remote", "Phone remote", "Me",
+                BluetoothHidDevice.SUBCLASS1_NONE, DESCRIPTOR);
 
         boolean ok = hid.registerApp(sdp, null, null, Executors.newSingleThreadExecutor(),
                 new BluetoothHidDevice.Callback() {
@@ -283,11 +284,11 @@ public class MainActivity extends Activity {
                     public void onGetReport(BluetoothDevice device, byte type, byte id, int bufferSize) {
                         if (hid == null) return;
                         if (id == ID_KEYBOARD || id == 0) {
-                            hid.replyReport(device, type, (byte) 1, new byte[8]);
-                        } else if (id == ID_MOUSE) {
-                            hid.replyReport(device, type, (byte) 2, new byte[4]);
+                            hid.replyReport(device, type, (byte) ID_KEYBOARD, new byte[8]);
                         } else if (id == ID_CONSUMER) {
-                            hid.replyReport(device, type, (byte) 3, new byte[2]);
+                            hid.replyReport(device, type, (byte) ID_CONSUMER, new byte[2]);
+                        } else if (id == ID_MOUSE) {
+                            hid.replyReport(device, type, (byte) ID_MOUSE, new byte[4]);
                         } else {
                             hid.replyReport(device, type, id, new byte[bufferSize > 0 ? Math.min(bufferSize, 8) : 8]);
                         }
@@ -312,12 +313,12 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle("Pairing Mode Active 📡")
                 .setMessage("Your phone is now discoverable for 3 minutes!\n\n"
-                        + "👉 On Laptop / PC:\n"
-                        + "1. Go to Windows Settings > Bluetooth.\n"
-                        + "2. Click 'Add Device' > Select 'BT Remote'.\n\n"
                         + "👉 On TV / Projector:\n"
                         + "1. Go to Settings > Remotes & Accessories.\n"
-                        + "2. Add Accessory > Select 'BT Remote'.")
+                        + "2. Add Accessory > Select 'BT Remote'.\n\n"
+                        + "👉 On Laptop / PC:\n"
+                        + "1. Go to Windows Settings > Bluetooth.\n"
+                        + "2. Click 'Add Device' > Select 'BT Remote'.")
                 .setPositiveButton("OK", null)
                 .show();
     }
@@ -333,15 +334,6 @@ public class MainActivity extends Activity {
                 }
             } catch (Exception ignored) {}
         }
-        if (adapter != null) {
-            try {
-                Set<BluetoothDevice> bonded = adapter.getBondedDevices();
-                if (bonded != null && !bonded.isEmpty()) {
-                    target = bonded.iterator().next();
-                    return target;
-                }
-            } catch (Exception ignored) {}
-        }
         return null;
     }
 
@@ -351,7 +343,7 @@ public class MainActivity extends Activity {
             String name = d.getName() != null ? d.getName() : d.getAddress();
             updateStatus("Connected: " + name, true);
         } else {
-            updateStatus("Ready • Tap Connect", false);
+            updateStatus("Disconnected • Tap Connect", false);
         }
     }
 
@@ -370,6 +362,11 @@ public class MainActivity extends Activity {
             return;
         }
         Set<BluetoothDevice> bonded = adapter.getBondedDevices();
+        if (bonded == null || bonded.isEmpty()) {
+            updateStatus("No paired devices • Tap Pair first", false);
+            makeDiscoverable();
+            return;
+        }
         final List<BluetoothDevice> list = new ArrayList<>(bonded);
         String[] names = new String[list.size()];
         for (int i = 0; i < names.length; i++) {
@@ -378,68 +375,58 @@ public class MainActivity extends Activity {
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Select Device (TV, Laptop, Projector)")
+                .setTitle("Select Paired Device")
                 .setItems(names, (dlg, which) -> {
                     target = list.get(which);
-                    hid.connect(target);
                     String name = target.getName() != null ? target.getName() : target.getAddress();
                     updateStatus("Connecting to " + name + "...", true);
+                    hid.connect(target);
                 })
                 .setNegativeButton("Cancel", null)
                 .setNeutralButton("Pair New 📡", (dlg, which) -> makeDiscoverable())
                 .show();
     }
 
-    // ---- HID Signal Emitters ----
+    // ---- Reliable Signal Transmission ----
 
     private void key(byte usage) {
-        sendKey(usage, (byte) 0);
-    }
-
-    private void sendKey(byte usage, byte modifier) {
         BluetoothDevice d = getTarget();
-        if (hid == null || d == null) return;
-        hid.sendReport(d, ID_KEYBOARD, new byte[]{modifier, 0, usage, 0, 0, 0, 0, 0});
+        if (hid == null || d == null) {
+            updateStatus("Not connected • Tap Connect", false);
+            return;
+        }
+        hid.sendReport(d, ID_KEYBOARD, new byte[]{0, 0, usage, 0, 0, 0, 0, 0});
         ui.postDelayed(() -> {
             if (hid != null && d != null)
                 hid.sendReport(d, ID_KEYBOARD, new byte[8]);
-        }, 40);
-    }
-
-    /**
-     * Universal OK / Enter key:
-     * Sends Keyboard Return/Enter (0x28).
-     * Works natively across all TV video players (YouTube, Netflix, Prime, MX Player),
-     * Leanback, dialog confirmations, and PC/Laptop.
-     */
-    private void pressOk() {
-        key(K_ENTER);
-    }
-
-    /**
-     * Universal Play / Pause:
-     * Sends Consumer Play/Pause (0xCD) and Keyboard Spacebar (0x2C).
-     * Seamlessly pauses and plays videos in every player app.
-     */
-    private void pressPlayPause() {
-        consumer(C_PLAY_PAUSE);
-        ui.postDelayed(() -> key(K_SPACE), 50);
-    }
-
-    private void pressBack() {
-        consumer(C_BACK);
-        ui.postDelayed(() -> key(K_ESC), 40);
+        }, 60);
     }
 
     private void consumer(int usage) {
         BluetoothDevice d = getTarget();
-        if (hid == null || d == null) return;
+        if (hid == null || d == null) {
+            updateStatus("Not connected • Tap Connect", false);
+            return;
+        }
         hid.sendReport(d, ID_CONSUMER,
                 new byte[]{(byte) (usage & 0xFF), (byte) ((usage >> 8) & 0xFF)});
         ui.postDelayed(() -> {
             if (hid != null && d != null)
                 hid.sendReport(d, ID_CONSUMER, new byte[]{0, 0});
-        }, 50);
+        }, 60);
+    }
+
+    private void pressOk() {
+        key(K_ENTER);
+    }
+
+    private void pressPlayPause() {
+        consumer(C_PLAY_PAUSE);
+    }
+
+    private void pressBack() {
+        consumer(C_BACK);
+        ui.postDelayed(() -> key(K_ESC), 60);
     }
 
     private void mouseMove(int dx, int dy) {
@@ -455,7 +442,7 @@ public class MainActivity extends Activity {
         ui.postDelayed(() -> {
             if (hid != null && d != null)
                 hid.sendReport(d, ID_MOUSE, new byte[]{0, 0, 0, 0});
-        }, 40);
+        }, 50);
     }
 
     private void mouseScroll(int wheel) {
@@ -473,7 +460,7 @@ public class MainActivity extends Activity {
                 char c = text.charAt(i);
                 sendChar(c);
                 try {
-                    Thread.sleep(35);
+                    Thread.sleep(40);
                 } catch (InterruptedException ignored) {}
             }
             isStreamingText = false;
@@ -540,7 +527,7 @@ public class MainActivity extends Activity {
         if (keycode != 0) {
             hid.sendReport(d, ID_KEYBOARD, new byte[]{modifier, 0, keycode, 0, 0, 0, 0, 0});
             try {
-                Thread.sleep(20);
+                Thread.sleep(25);
             } catch (InterruptedException ignored) {}
             if (hid != null && d != null) {
                 hid.sendReport(d, ID_KEYBOARD, new byte[8]);
@@ -548,7 +535,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---- Clean, Simple UI ----
+    // ---- Clean UI ----
 
     private void buildUi() {
         ScrollView scroll = new ScrollView(this);
@@ -559,7 +546,7 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(16), dp(16), dp(16), dp(24));
 
-        // 1. Clean Top Header
+        // 1. Header with Pair & Connect buttons
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
@@ -607,7 +594,7 @@ public class MainActivity extends Activity {
         statusPill.addView(statusText);
         root.addView(statusPill);
 
-        // 3. Tab Selector
+        // 3. Tab Navigation
         LinearLayout tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabs.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(12)));
@@ -630,7 +617,7 @@ public class MainActivity extends Activity {
         tabs.addView(tabKeyb);
         root.addView(tabs);
 
-        // 4. View Containers
+        // 4. Containers
         remoteContainer = buildRemoteView();
         trackpadContainer = buildTrackpadView();
         keyboardContainer = buildKeyboardView();
@@ -664,7 +651,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---- 1. Simple Clean Remote View ----
+    // ---- 1. Remote View ----
 
     private View buildRemoteView() {
         LinearLayout v = new LinearLayout(this);
@@ -695,10 +682,8 @@ public class MainActivity extends Activity {
         // Left - OK - Right
         Button btnLeft = dpadArrow("◀", view -> key(K_LEFT));
         Button btnOk = dpadCenter("OK", view -> pressOk());
-        // Long press OK also triggers play/pause as a helpful shortcut
         btnOk.setOnLongClickListener(view -> {
             pressPlayPause();
-            updateStatus("⏯️ Play/Pause", true);
             return true;
         });
         Button btnRight = dpadArrow("▶", view -> key(K_RIGHT));
@@ -709,13 +694,10 @@ public class MainActivity extends Activity {
 
         v.addView(dpadCard);
 
-        // Prominent Play/Pause Button (Single tap to pause/play any video app)
+        // Prominent Play/Pause Button
         Button btnPlayPause = cleanButton("⏯️ PLAY / PAUSE", C_SUCCESS, C_SUCCESS_PRESSED, Color.WHITE, dp(12));
         btnPlayPause.setTextSize(15);
-        btnPlayPause.setOnClickListener(view -> {
-            pressPlayPause();
-            updateStatus("⏯️ Play / Pause", true);
-        });
+        btnPlayPause.setOnClickListener(view -> pressPlayPause());
         LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(50));
         playParams.setMargins(0, 0, 0, dp(12));
@@ -730,33 +712,26 @@ public class MainActivity extends Activity {
         volRow.addView(remoteBtn("🔊 Vol +", C_BTN, C_BTN_PRESSED, C_TEXT, view -> consumer(C_VOL_UP)));
         v.addView(volRow);
 
-        // Media Navigation Row (Rewind, Menu, Fast Forward)
+        // Media Seek Row
         LinearLayout navRow = new LinearLayout(this);
         navRow.setOrientation(LinearLayout.HORIZONTAL);
-        navRow.addView(remoteBtn("⏪ -10s", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> {
-            consumer(C_REWIND);
-            key(K_LEFT);
-        }));
+        navRow.addView(remoteBtn("⏪ -10s", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> consumer(C_REWIND)));
         navRow.addView(remoteBtn("☰ Menu", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> {
             key(K_MENU);
             key(K_ESC);
         }));
-        navRow.addView(remoteBtn("⏩ +10s", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> {
-            consumer(C_FAST_FORWARD);
-            key(K_RIGHT);
-        }));
+        navRow.addView(remoteBtn("⏩ +10s", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> consumer(C_FAST_FORWARD)));
         v.addView(navRow);
 
         return v;
     }
 
-    // ---- 2. Simple Clean Touchpad View ----
+    // ---- 2. Touchpad View ----
 
     private View buildTrackpadView() {
         LinearLayout v = new LinearLayout(this);
         v.setOrientation(LinearLayout.VERTICAL);
 
-        // Touchpad Surface
         View pad = new View(this);
         int padHeight = dp(280);
         LinearLayout.LayoutParams padParams = new LinearLayout.LayoutParams(
@@ -799,7 +774,6 @@ public class MainActivity extends Activity {
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
                         view.getParent().requestDisallowInterceptTouchEvent(false);
-                        // Tap to Click
                         if (!moved && (System.currentTimeMillis() - downTime) < 250) {
                             mouseClick(1);
                         }
@@ -810,14 +784,12 @@ public class MainActivity extends Activity {
         });
         v.addView(pad);
 
-        // Mouse Click Row
         LinearLayout clickRow = new LinearLayout(this);
         clickRow.setOrientation(LinearLayout.HORIZONTAL);
         clickRow.addView(remoteBtn("🖱️ Left Click", C_PRIMARY, C_PRIMARY_PRESSED, Color.WHITE, view -> mouseClick(1)));
         clickRow.addView(remoteBtn("🖱️ Right Click", C_BTN, C_BTN_PRESSED, C_TEXT, view -> mouseClick(2)));
         v.addView(clickRow);
 
-        // Scroll Row
         LinearLayout scrollRow = new LinearLayout(this);
         scrollRow.setOrientation(LinearLayout.HORIZONTAL);
         scrollRow.addView(remoteBtn("▲ Scroll Up", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> mouseScroll(3)));
@@ -827,7 +799,7 @@ public class MainActivity extends Activity {
         return v;
     }
 
-    // ---- 3. Simple Clean Keyboard View ----
+    // ---- 3. Keyboard View ----
 
     private View buildKeyboardView() {
         LinearLayout v = new LinearLayout(this);
@@ -841,7 +813,6 @@ public class MainActivity extends Activity {
         input.setPadding(dp(14), dp(14), dp(14), dp(14));
         input.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(12)));
 
-        // Live typing
         input.addTextChangedListener(new TextWatcher() {
             private String prevText = "";
 
@@ -877,7 +848,6 @@ public class MainActivity extends Activity {
         });
         v.addView(input);
 
-        // Send Button
         Button btnSend = cleanButton("🚀 Send Text", C_SUCCESS, C_SUCCESS_PRESSED, Color.WHITE, dp(10));
         LinearLayout.LayoutParams sendParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(46));
@@ -892,7 +862,6 @@ public class MainActivity extends Activity {
         });
         v.addView(btnSend);
 
-        // Quick Keycaps
         LinearLayout r1 = new LinearLayout(this);
         r1.setOrientation(LinearLayout.HORIZONTAL);
         r1.addView(remoteBtn("⌫ Backspace", C_BTN, C_BTN_PRESSED, C_TEXT, view -> key(K_BACKSPACE)));
@@ -909,7 +878,7 @@ public class MainActivity extends Activity {
         return v;
     }
 
-    // ---- UI Helper Builders ----
+    // ---- Helper Methods ----
 
     private Button cleanButton(String text, int normalColor, int pressedColor, int textColor, int radiusDp) {
         Button b = new Button(this);
