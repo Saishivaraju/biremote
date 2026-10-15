@@ -36,30 +36,30 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 
 /**
- * Premium Bluetooth HID Universal Remote, Touchpad & Keyboard.
- * Serverless controller for Android TV, Google TV, Fire TV, Apple TV, PC, Laptop & Projectors.
+ * Clean & Simple Bluetooth HID Universal Remote, Touchpad & Keyboard.
+ * Works seamlessly with Android TV, Google TV, PC/Laptop, Projectors & Media Players.
  */
 public class MainActivity extends Activity {
 
-    // Report IDs (Standard Composite Layout: 1=Keyboard, 2=Mouse, 3=Consumer)
+    // Report IDs
     private static final int ID_KEYBOARD = 1;
     private static final int ID_MOUSE = 2;
     private static final int ID_CONSUMER = 3;
 
-    // Keyboard usages (Usage Page 0x07)
-    private static final byte K_RIGHT = 0x4F, K_LEFT = 0x50, K_DOWN = 0x51,
-            K_UP = 0x52, K_ENTER = 0x28, K_ESC = 0x29, K_BACKSPACE = 0x2A,
-            K_TAB = 0x2B, K_SPACE = 0x2C, K_DELETE = 0x4C;
+    // Keyboard Usages (Usage Page 0x07)
+    private static final byte K_RIGHT = 0x4F, K_LEFT = 0x50, K_DOWN = 0x51, K_UP = 0x52;
+    private static final byte K_ENTER = 0x28, K_ESC = 0x29, K_BACKSPACE = 0x2A;
+    private static final byte K_TAB = 0x2B, K_SPACE = 0x2C, K_MENU = 0x65;
 
-    // Consumer usages (Usage Page 0x0C)
-    private static final int C_DPAD_CENTER = 0x41; // Select / DPAD_CENTER
-    private static final int C_POWER = 0x30, C_VOL_UP = 0xE9, C_VOL_DOWN = 0xEA,
-            C_MUTE = 0xE2, C_PLAY_PAUSE = 0xCD, C_HOME = 0x223, C_BACK = 0x224;
+    // Consumer Usages (Usage Page 0x0C)
+    private static final int C_POWER = 0x30;
+    private static final int C_VOL_UP = 0xE9, C_VOL_DOWN = 0xEA, C_MUTE = 0xE2;
+    private static final int C_PLAY_PAUSE = 0xCD;
+    private static final int C_FAST_FORWARD = 0x8E, C_REWIND = 0x8F;
+    private static final int C_HOME = 0x223, C_BACK = 0x224;
 
     private static final byte[] DESCRIPTOR = new byte[]{
-            // -------------------------------------------------------------
             // 1. Keyboard (Report ID 1)
-            // -------------------------------------------------------------
             0x05, 0x01,                    // Usage Page (Generic Desktop)
             0x09, 0x06,                    // Usage (Keyboard)
             (byte) 0xA1, 0x01,             // Collection (Application)
@@ -82,19 +82,16 @@ public class MainActivity extends Activity {
             0x05, 0x07,                    //   Usage Page (Key Codes)
             0x19, 0x00,                    //   Usage Minimum (0)
             0x29, 0x65,                    //   Usage Maximum (101)
-            (byte) 0x81, 0x00,             //   Input (Data, Array) - 6 keycodes
+            (byte) 0x81, 0x00,             //   Input (Data, Array)
             (byte) 0xC0,                   // End Collection (Keyboard)
 
-            // -------------------------------------------------------------
             // 2. Mouse (Report ID 2)
-            // -------------------------------------------------------------
             0x05, 0x01,                    // Usage Page (Generic Desktop)
             0x09, 0x02,                    // Usage (Mouse)
             (byte) 0xA1, 0x01,             // Collection (Application)
             (byte) 0x85, (byte) ID_MOUSE,  //   Report ID (2)
             0x09, 0x01,                    //   Usage (Pointer)
             (byte) 0xA1, 0x00,             //   Collection (Physical)
-            // 3 Buttons (Left, Right, Middle)
             0x05, 0x09,                    //     Usage Page (Buttons)
             0x19, 0x01,                    //     Usage Minimum (1)
             0x29, 0x03,                    //     Usage Maximum (3)
@@ -103,11 +100,9 @@ public class MainActivity extends Activity {
             (byte) 0x95, 0x03,             //     Report Count (3)
             0x75, 0x01,                    //     Report Size (1)
             (byte) 0x81, 0x02,             //     Input (Data, Variable, Absolute)
-            // 5 bits padding
             (byte) 0x95, 0x01,             //     Report Count (1)
             0x75, 0x05,                    //     Report Size (5)
             (byte) 0x81, 0x03,             //     Input (Constant, Variable, Absolute)
-            // X and Y
             0x05, 0x01,                    //     Usage Page (Generic Desktop)
             0x09, 0x30,                    //     Usage (X)
             0x09, 0x31,                    //     Usage (Y)
@@ -116,7 +111,6 @@ public class MainActivity extends Activity {
             0x75, 0x08,                    //     Report Size (8)
             (byte) 0x95, 0x02,             //     Report Count (2)
             (byte) 0x81, 0x06,             //     Input (Data, Variable, Relative)
-            // Wheel
             0x09, 0x38,                    //     Usage (Wheel)
             0x15, (byte) 0x81,             //     Logical Minimum (-127)
             0x25, 0x7F,                    //     Logical Maximum (127)
@@ -126,9 +120,7 @@ public class MainActivity extends Activity {
             (byte) 0xC0,                   //   End Collection (Physical)
             (byte) 0xC0,                   // End Collection (Mouse)
 
-            // -------------------------------------------------------------
             // 3. Consumer / Media Remote (Report ID 3)
-            // -------------------------------------------------------------
             0x05, 0x0C,                    // Usage Page (Consumer Devices)
             0x09, 0x01,                    // Usage (Consumer Control)
             (byte) 0xA1, 0x01,             // Collection (Application)
@@ -143,22 +135,21 @@ public class MainActivity extends Activity {
             (byte) 0xC0                    // End Collection (Consumer)
     };
 
-    // Color Palette
-    private static final int C_BG = Color.parseColor("#0C0F17");
-    private static final int C_CARD = Color.parseColor("#151B2B");
-    private static final int C_CARD_BORDER = Color.parseColor("#222D47");
-    private static final int C_BTN = Color.parseColor("#1D253A");
-    private static final int C_BTN_BORDER = Color.parseColor("#2E3B5C");
-    private static final int C_BTN_PRESSED = Color.parseColor("#2A3654");
-    private static final int C_INDIGO = Color.parseColor("#6366F1");
-    private static final int C_INDIGO_PRESSED = Color.parseColor("#4F46E5");
-    private static final int C_EMERALD = Color.parseColor("#10B981");
-    private static final int C_EMERALD_PRESSED = Color.parseColor("#059669");
-    private static final int C_CRIMSON = Color.parseColor("#EF4444");
-    private static final int C_CRIMSON_PRESSED = Color.parseColor("#DC2626");
-    private static final int C_TEXT_PRIMARY = Color.parseColor("#F8FAFC");
-    private static final int C_TEXT_SECONDARY = Color.parseColor("#94A3B8");
-    private static final int C_TEXT_MUTED = Color.parseColor("#64748B");
+    // Clean, modern, unified color palette
+    private static final int C_BG = Color.parseColor("#11151E");
+    private static final int C_CARD = Color.parseColor("#1B212D");
+    private static final int C_CARD_BORDER = Color.parseColor("#283144");
+    private static final int C_BTN = Color.parseColor("#222A3A");
+    private static final int C_BTN_BORDER = Color.parseColor("#323E56");
+    private static final int C_BTN_PRESSED = Color.parseColor("#2C364A");
+    private static final int C_PRIMARY = Color.parseColor("#3B82F6");
+    private static final int C_PRIMARY_PRESSED = Color.parseColor("#2563EB");
+    private static final int C_SUCCESS = Color.parseColor("#10B981");
+    private static final int C_SUCCESS_PRESSED = Color.parseColor("#059669");
+    private static final int C_DANGER = Color.parseColor("#EF4444");
+    private static final int C_DANGER_PRESSED = Color.parseColor("#DC2626");
+    private static final int C_TEXT = Color.parseColor("#F9FAFB");
+    private static final int C_TEXT_MUTED = Color.parseColor("#94A3B8");
 
     private BluetoothAdapter adapter;
     private BluetoothHidDevice hid;
@@ -170,15 +161,11 @@ public class MainActivity extends Activity {
     private View remoteContainer;
     private View trackpadContainer;
     private View keyboardContainer;
-
     private boolean isStreamingText = false;
-    private boolean isDpadSwipeMode = false; // Toggle between Free Mouse and TV Swipe Gestures
-    private Button btnModeToggle;
-    private TextView trackpadModeDesc;
 
     @Override
-    protected void onCreate(Bundle b) {
-        super.onCreate(b);
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
         if (Build.VERSION.SDK_INT >= 21) {
             getWindow().setStatusBarColor(C_BG);
@@ -236,10 +223,10 @@ public class MainActivity extends Activity {
         BluetoothManager bm = getSystemService(BluetoothManager.class);
         adapter = bm != null ? bm.getAdapter() : BluetoothAdapter.getDefaultAdapter();
         if (adapter == null || !adapter.isEnabled()) {
-            updateStatus("Bluetooth is OFF. Turn ON & tap Re-register", false);
+            updateStatus("Bluetooth is OFF. Turn ON Bluetooth", false);
             return;
         }
-        updateStatus("Initializing HID Service...", false);
+        updateStatus("Initializing HID...", false);
         adapter.getProfileProxy(this, new BluetoothProfile.ServiceListener() {
             @Override
             public void onServiceConnected(int profile, BluetoothProfile proxy) {
@@ -250,7 +237,7 @@ public class MainActivity extends Activity {
             @Override
             public void onServiceDisconnected(int profile) {
                 hid = null;
-                updateStatus("HID service disconnected", false);
+                updateStatus("HID Disconnected", false);
             }
         }, BluetoothProfile.HID_DEVICE);
     }
@@ -262,10 +249,10 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {}
 
         BluetoothHidDeviceAppSdpSettings sdp = new BluetoothHidDeviceAppSdpSettings(
-                "BT Remote", "Universal Remote & Mouse", "Google",
+                "BT Remote", "Universal Remote", "Google",
                 BluetoothHidDevice.SUBCLASS1_COMBO, DESCRIPTOR);
 
-        boolean started = hid.registerApp(sdp, null, null, Executors.newSingleThreadExecutor(),
+        boolean ok = hid.registerApp(sdp, null, null, Executors.newSingleThreadExecutor(),
                 new BluetoothHidDevice.Callback() {
                     @Override
                     public void onAppStatusChanged(BluetoothDevice d, boolean registered) {
@@ -273,7 +260,7 @@ public class MainActivity extends Activity {
                             if (registered) {
                                 checkConnectedState();
                             } else {
-                                updateStatus("HID ready • Tap Connect or Pair", true);
+                                updateStatus("Ready • Tap Connect", true);
                             }
                         });
                     }
@@ -292,7 +279,6 @@ public class MainActivity extends Activity {
                         });
                     }
 
-                    // Handshake responses: Satisfies host requests so neither Windows nor TV disconnects
                     @Override
                     public void onGetReport(BluetoothDevice device, byte type, byte id, int bufferSize) {
                         if (hid == null) return;
@@ -309,20 +295,15 @@ public class MainActivity extends Activity {
 
                     @Override
                     public void onSetReport(BluetoothDevice device, byte type, byte id, byte[] data) {
-                        if (hid != null) {
-                            hid.reportError(device, (byte) 0x00);
-                        }
+                        if (hid != null) hid.reportError(device, (byte) 0x00);
                     }
                 });
 
-        if (!started) {
-            updateStatus("Service busy • Tap Re-register", false);
+        if (!ok) {
+            updateStatus("Service busy • Tap Connect", false);
         }
     }
 
-    /**
-     * Makes phone discoverable so a Laptop, Projector, or TV can find it and pair directly.
-     */
     private void makeDiscoverable() {
         Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 180);
@@ -331,14 +312,13 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle("Pairing Mode Active 📡")
                 .setMessage("Your phone is now discoverable for 3 minutes!\n\n"
-                        + "👉 On your Laptop / PC:\n"
-                        + "1. Go to Windows Settings > Bluetooth & Devices.\n"
-                        + "2. Click 'Add Device' > 'Bluetooth'.\n"
-                        + "3. Look for 'BT Remote' and click Pair.\n\n"
-                        + "👉 On your TV / Projector:\n"
-                        + "1. Go to Settings > Remotes & Accessories > Add Accessory.\n"
-                        + "2. Select 'BT Remote' to pair.")
-                .setPositiveButton("Got It", null)
+                        + "👉 On Laptop / PC:\n"
+                        + "1. Go to Windows Settings > Bluetooth.\n"
+                        + "2. Click 'Add Device' > Select 'BT Remote'.\n\n"
+                        + "👉 On TV / Projector:\n"
+                        + "1. Go to Settings > Remotes & Accessories.\n"
+                        + "2. Add Accessory > Select 'BT Remote'.")
+                .setPositiveButton("OK", null)
                 .show();
     }
 
@@ -371,7 +351,7 @@ public class MainActivity extends Activity {
             String name = d.getName() != null ? d.getName() : d.getAddress();
             updateStatus("Connected: " + name, true);
         } else {
-            updateStatus("Ready • Tap Connect or Pair", true);
+            updateStatus("Ready • Tap Connect", false);
         }
     }
 
@@ -379,13 +359,16 @@ public class MainActivity extends Activity {
         ui.post(() -> {
             if (statusText != null) statusText.setText(text);
             if (statusDot != null) {
-                statusDot.setTextColor(isPositive ? C_EMERALD : Color.parseColor("#F59E0B"));
+                statusDot.setTextColor(isPositive ? C_SUCCESS : Color.parseColor("#F59E0B"));
             }
         });
     }
 
     private void pickDevice() {
-        if (hid == null || adapter == null) return;
+        if (hid == null || adapter == null) {
+            initBluetooth();
+            return;
+        }
         Set<BluetoothDevice> bonded = adapter.getBondedDevices();
         final List<BluetoothDevice> list = new ArrayList<>(bonded);
         String[] names = new String[list.size()];
@@ -395,7 +378,7 @@ public class MainActivity extends Activity {
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Select Paired Device (Laptop / TV / Projector)")
+                .setTitle("Select Device (TV, Laptop, Projector)")
                 .setItems(names, (dlg, which) -> {
                     target = list.get(which);
                     hid.connect(target);
@@ -403,11 +386,11 @@ public class MainActivity extends Activity {
                     updateStatus("Connecting to " + name + "...", true);
                 })
                 .setNegativeButton("Cancel", null)
-                .setNeutralButton("Pair New Device 📡", (dlg, which) -> makeDiscoverable())
+                .setNeutralButton("Pair New 📡", (dlg, which) -> makeDiscoverable())
                 .show();
     }
 
-    // ---- Key & String Transmission ----
+    // ---- HID Signal Emitters ----
 
     private void key(byte usage) {
         sendKey(usage, (byte) 0);
@@ -423,14 +406,62 @@ public class MainActivity extends Activity {
         }, 40);
     }
 
+    /**
+     * Universal OK / Enter key:
+     * Sends Keyboard Return/Enter (0x28).
+     * Works natively across all TV video players (YouTube, Netflix, Prime, MX Player),
+     * Leanback, dialog confirmations, and PC/Laptop.
+     */
     private void pressOk() {
-        consumer(C_DPAD_CENTER);
         key(K_ENTER);
+    }
+
+    /**
+     * Universal Play / Pause:
+     * Sends Consumer Play/Pause (0xCD) and Keyboard Spacebar (0x2C).
+     * Seamlessly pauses and plays videos in every player app.
+     */
+    private void pressPlayPause() {
+        consumer(C_PLAY_PAUSE);
+        ui.postDelayed(() -> key(K_SPACE), 50);
     }
 
     private void pressBack() {
         consumer(C_BACK);
-        key(K_ESC);
+        ui.postDelayed(() -> key(K_ESC), 40);
+    }
+
+    private void consumer(int usage) {
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_CONSUMER,
+                new byte[]{(byte) (usage & 0xFF), (byte) ((usage >> 8) & 0xFF)});
+        ui.postDelayed(() -> {
+            if (hid != null && d != null)
+                hid.sendReport(d, ID_CONSUMER, new byte[]{0, 0});
+        }, 50);
+    }
+
+    private void mouseMove(int dx, int dy) {
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_MOUSE, new byte[]{0, (byte) dx, (byte) dy, 0});
+    }
+
+    private void mouseClick(int button) {
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_MOUSE, new byte[]{(byte) button, 0, 0, 0});
+        ui.postDelayed(() -> {
+            if (hid != null && d != null)
+                hid.sendReport(d, ID_MOUSE, new byte[]{0, 0, 0, 0});
+        }, 40);
+    }
+
+    private void mouseScroll(int wheel) {
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_MOUSE, new byte[]{0, 0, 0, (byte) wheel});
     }
 
     private void sendString(String text) {
@@ -517,137 +548,89 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---- Media & Mouse ----
-
-    private void consumer(int usage) {
-        BluetoothDevice d = getTarget();
-        if (hid == null || d == null) return;
-        hid.sendReport(d, ID_CONSUMER,
-                new byte[]{(byte) (usage & 0xFF), (byte) ((usage >> 8) & 0xFF)});
-        ui.postDelayed(() -> {
-            if (hid != null && d != null)
-                hid.sendReport(d, ID_CONSUMER, new byte[]{0, 0});
-        }, 50);
-    }
-
-    private void mouseMove(int dx, int dy) {
-        BluetoothDevice d = getTarget();
-        if (hid == null || d == null) return;
-        hid.sendReport(d, ID_MOUSE, new byte[]{0, (byte) dx, (byte) dy, 0});
-    }
-
-    private void mouseClick(int button) {
-        BluetoothDevice d = getTarget();
-        if (hid == null || d == null) return;
-        hid.sendReport(d, ID_MOUSE, new byte[]{(byte) button, 0, 0, 0});
-        ui.postDelayed(() -> {
-            if (hid != null && d != null)
-                hid.sendReport(d, ID_MOUSE, new byte[]{0, 0, 0, 0});
-        }, 40);
-    }
-
-    private void mouseScroll(int wheel) {
-        BluetoothDevice d = getTarget();
-        if (hid == null || d == null) return;
-        hid.sendReport(d, ID_MOUSE, new byte[]{0, 0, 0, (byte) wheel});
-    }
-
-    // ---- UI Builder ----
+    // ---- Clean, Simple UI ----
 
     private void buildUi() {
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(C_BG);
+        scroll.setFillViewport(true);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(dp(16), dp(20), dp(16), dp(32));
+        root.setPadding(dp(16), dp(16), dp(16), dp(24));
 
-        // 1. Header Banner
+        // 1. Clean Top Header
         LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.VERTICAL);
-        header.setGravity(Gravity.CENTER);
-        header.setPadding(0, dp(4), 0, dp(12));
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(0, 0, 0, dp(12));
 
-        TextView appTitle = new TextView(this);
-        appTitle.setText("BT REMOTE");
-        appTitle.setTextColor(C_TEXT_PRIMARY);
-        appTitle.setTextSize(20);
-        appTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        appTitle.setLetterSpacing(0.12f);
-        header.addView(appTitle);
+        TextView title = new TextView(this);
+        title.setText("BT REMOTE");
+        title.setTextColor(C_TEXT);
+        title.setTextSize(18);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        title.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        header.addView(title);
 
-        TextView subTitle = new TextView(this);
-        subTitle.setText("Laptop • Android TV • Projector • PC");
-        subTitle.setTextColor(C_TEXT_MUTED);
-        subTitle.setTextSize(11);
-        subTitle.setLetterSpacing(0.05f);
-        header.addView(subTitle);
+        Button btnPair = cleanButton("📡 Pair", C_BTN, C_BTN_PRESSED, C_TEXT, dp(8));
+        btnPair.setOnClickListener(v -> makeDiscoverable());
+        LinearLayout.LayoutParams pairParams = new LinearLayout.LayoutParams(dp(80), dp(38));
+        pairParams.setMargins(0, 0, dp(8), 0);
+        btnPair.setLayoutParams(pairParams);
+        header.addView(btnPair);
+
+        Button btnConnect = cleanButton("🔗 Connect", C_PRIMARY, C_PRIMARY_PRESSED, Color.WHITE, dp(8));
+        btnConnect.setOnClickListener(v -> pickDevice());
+        btnConnect.setLayoutParams(new LinearLayout.LayoutParams(dp(95), dp(38)));
+        header.addView(btnConnect);
+
         root.addView(header);
 
-        // 2. Status Badge Card
-        LinearLayout statusBadge = new LinearLayout(this);
-        statusBadge.setOrientation(LinearLayout.HORIZONTAL);
-        statusBadge.setGravity(Gravity.CENTER);
-        statusBadge.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(24)));
-        statusBadge.setPadding(dp(16), dp(8), dp(16), dp(8));
+        // 2. Status Pill
+        LinearLayout statusPill = new LinearLayout(this);
+        statusPill.setOrientation(LinearLayout.HORIZONTAL);
+        statusPill.setGravity(Gravity.CENTER_VERTICAL);
+        statusPill.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(10)));
+        statusPill.setPadding(dp(12), dp(8), dp(12), dp(8));
 
         statusDot = new TextView(this);
         statusDot.setText("● ");
         statusDot.setTextSize(14);
         statusDot.setTextColor(Color.parseColor("#F59E0B"));
-        statusBadge.addView(statusDot);
+        statusPill.addView(statusDot);
 
         statusText = new TextView(this);
         statusText.setText("Connecting Bluetooth...");
-        statusText.setTextSize(12);
-        statusText.setTextColor(C_TEXT_SECONDARY);
-        statusBadge.addView(statusText);
-        root.addView(statusBadge);
+        statusText.setTextSize(13);
+        statusText.setTextColor(C_TEXT_MUTED);
+        statusPill.addView(statusText);
+        root.addView(statusPill);
 
-        // 3. Quick Action Row (Connect, Pair Mode, Refresh)
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setPadding(0, dp(12), 0, dp(12));
+        // 3. Tab Selector
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabs.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(12)));
+        tabs.setPadding(dp(4), dp(4), dp(4), dp(4));
+        LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        tabParams.setMargins(0, dp(12), 0, dp(12));
+        tabs.setLayoutParams(tabParams);
 
-        Button btnConnect = customButton("🔗 Connect", C_INDIGO, C_INDIGO_PRESSED, Color.WHITE, dp(12));
-        btnConnect.setOnClickListener(v -> pickDevice());
-
-        Button btnPair = customButton("📡 Pair Mode", Color.parseColor("#059669"), Color.parseColor("#047857"), Color.WHITE, dp(12));
-        btnPair.setOnClickListener(v -> makeDiscoverable());
-
-        Button btnRefresh = customButton("🔄 Refresh", C_BTN, C_BTN_PRESSED, C_TEXT_SECONDARY, dp(12));
-        btnRefresh.setOnClickListener(v -> {
-            updateStatus("Refreshing HID service...", false);
-            if (hid != null) registerHid();
-            else initBluetooth();
-        });
-
-        actions.addView(btnConnect);
-        actions.addView(btnPair);
-        actions.addView(btnRefresh);
-        root.addView(actions);
-
-        // 4. Tab Navigation
-        LinearLayout navTabs = new LinearLayout(this);
-        navTabs.setOrientation(LinearLayout.HORIZONTAL);
-        navTabs.setBackground(shape(Color.parseColor("#101524"), C_CARD_BORDER, dp(1), dp(16)));
-        navTabs.setPadding(dp(4), dp(4), dp(4), dp(4));
-
-        Button tabRemote = customButton("📺 REMOTE", C_INDIGO, C_INDIGO_PRESSED, Color.WHITE, dp(12));
-        Button tabTouch = customButton("🖱️ TOUCHPAD", Color.TRANSPARENT, C_BTN, C_TEXT_MUTED, dp(12));
-        Button tabKeyb = customButton("⌨️ KEYBOARD", Color.TRANSPARENT, C_BTN, C_TEXT_MUTED, dp(12));
+        Button tabRemote = cleanButton("📺 Remote", C_PRIMARY, C_PRIMARY_PRESSED, Color.WHITE, dp(8));
+        Button tabTouch = cleanButton("🖱️ Mouse", Color.TRANSPARENT, C_BTN, C_TEXT_MUTED, dp(8));
+        Button tabKeyb = cleanButton("⌨️ Keyboard", Color.TRANSPARENT, C_BTN, C_TEXT_MUTED, dp(8));
 
         tabRemote.setOnClickListener(v -> switchTab(0, tabRemote, tabTouch, tabKeyb));
         tabTouch.setOnClickListener(v -> switchTab(1, tabRemote, tabTouch, tabKeyb));
         tabKeyb.setOnClickListener(v -> switchTab(2, tabRemote, tabTouch, tabKeyb));
 
-        navTabs.addView(tabRemote);
-        navTabs.addView(tabTouch);
-        navTabs.addView(tabKeyb);
-        root.addView(navTabs);
+        tabs.addView(tabRemote);
+        tabs.addView(tabTouch);
+        tabs.addView(tabKeyb);
+        root.addView(tabs);
 
-        // 5. Container Views
+        // 4. View Containers
         remoteContainer = buildRemoteView();
         trackpadContainer = buildTrackpadView();
         keyboardContainer = buildKeyboardView();
@@ -670,156 +653,129 @@ public class MainActivity extends Activity {
         Button[] tabs = new Button[]{tabRemote, tabTouch, tabKeyb};
         for (int i = 0; i < tabs.length; i++) {
             if (i == index) {
-                tabs[i].setBackground(shape(C_INDIGO, Color.TRANSPARENT, 0, dp(12)));
+                tabs[i].setBackground(shape(C_PRIMARY, Color.TRANSPARENT, 0, dp(8)));
                 tabs[i].setTextColor(Color.WHITE);
                 tabs[i].setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
             } else {
-                tabs[i].setBackground(shape(Color.TRANSPARENT, Color.TRANSPARENT, 0, dp(12)));
+                tabs[i].setBackground(shape(Color.TRANSPARENT, Color.TRANSPARENT, 0, dp(8)));
                 tabs[i].setTextColor(C_TEXT_MUTED);
                 tabs[i].setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
             }
         }
-
-        if (index == 1) {
-            ui.postDelayed(() -> {
-                mouseMove(2, 2);
-                mouseMove(-2, -2);
-            }, 100);
-        }
     }
 
-    // ---- 1. Remote View ----
+    // ---- 1. Simple Clean Remote View ----
 
     private View buildRemoteView() {
         LinearLayout v = new LinearLayout(this);
         v.setOrientation(LinearLayout.VERTICAL);
-        v.setGravity(Gravity.CENTER_HORIZONTAL);
-        v.setPadding(0, dp(16), 0, 0);
 
-        // Power & Home cluster
-        LinearLayout topBar = new LinearLayout(this);
-        topBar.setOrientation(LinearLayout.HORIZONTAL);
-        Button btnPower = iconBtn("⏻ Power", C_CRIMSON, C_CRIMSON_PRESSED, Color.WHITE, view -> consumer(C_POWER));
-        Button btnHome = iconBtn("🏠 Home", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> consumer(C_HOME));
-        Button btnBack = iconBtn("↩ Back", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> pressBack());
-        topBar.addView(btnPower);
-        topBar.addView(btnHome);
-        topBar.addView(btnBack);
-        v.addView(topBar);
+        // Top Row: Power, Mute, Back
+        LinearLayout topRow = new LinearLayout(this);
+        topRow.setOrientation(LinearLayout.HORIZONTAL);
+        topRow.addView(remoteBtn("⏻ Power", C_DANGER, C_DANGER_PRESSED, Color.WHITE, view -> consumer(C_POWER)));
+        topRow.addView(remoteBtn("🔇 Mute", C_BTN, C_BTN_PRESSED, C_TEXT, view -> consumer(C_MUTE)));
+        topRow.addView(remoteBtn("↩ Back", C_BTN, C_BTN_PRESSED, C_TEXT, view -> pressBack()));
+        v.addView(topRow);
 
-        // D-Pad Container Card
+        // D-Pad Surface Card
         LinearLayout dpadCard = new LinearLayout(this);
         dpadCard.setOrientation(LinearLayout.VERTICAL);
         dpadCard.setGravity(Gravity.CENTER);
-        dpadCard.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(32)));
+        dpadCard.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(24)));
         dpadCard.setPadding(dp(16), dp(18), dp(16), dp(18));
         LinearLayout.LayoutParams dpadParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        dpadParams.setMargins(0, dp(14), 0, dp(14));
+        dpadParams.setMargins(0, dp(12), 0, dp(12));
         dpadCard.setLayoutParams(dpadParams);
 
         // Up
-        dpadCard.addView(dpadRow(blank(), dpadBtn("▲", view -> key(K_UP)), blank()));
+        dpadCard.addView(dpadRow(blank(), dpadArrow("▲", view -> key(K_UP)), blank()));
+
         // Left - OK - Right
-        Button btnLeft = dpadBtn("◀", view -> key(K_LEFT));
-        Button btnOk = dpadCenterBtn("OK", view -> pressOk());
-        Button btnRight = dpadBtn("▶", view -> key(K_RIGHT));
+        Button btnLeft = dpadArrow("◀", view -> key(K_LEFT));
+        Button btnOk = dpadCenter("OK", view -> pressOk());
+        // Long press OK also triggers play/pause as a helpful shortcut
+        btnOk.setOnLongClickListener(view -> {
+            pressPlayPause();
+            updateStatus("⏯️ Play/Pause", true);
+            return true;
+        });
+        Button btnRight = dpadArrow("▶", view -> key(K_RIGHT));
         dpadCard.addView(dpadRow(btnLeft, btnOk, btnRight));
+
         // Down
-        dpadCard.addView(dpadRow(blank(), dpadBtn("▼", view -> key(K_DOWN)), blank()));
+        dpadCard.addView(dpadRow(blank(), dpadArrow("▼", view -> key(K_DOWN)), blank()));
 
         v.addView(dpadCard);
 
-        // Volume & Mute Row
+        // Prominent Play/Pause Button (Single tap to pause/play any video app)
+        Button btnPlayPause = cleanButton("⏯️ PLAY / PAUSE", C_SUCCESS, C_SUCCESS_PRESSED, Color.WHITE, dp(12));
+        btnPlayPause.setTextSize(15);
+        btnPlayPause.setOnClickListener(view -> {
+            pressPlayPause();
+            updateStatus("⏯️ Play / Pause", true);
+        });
+        LinearLayout.LayoutParams playParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(50));
+        playParams.setMargins(0, 0, 0, dp(12));
+        btnPlayPause.setLayoutParams(playParams);
+        v.addView(btnPlayPause);
+
+        // Volume & Home Row
         LinearLayout volRow = new LinearLayout(this);
         volRow.setOrientation(LinearLayout.HORIZONTAL);
-        Button btnVolDown = iconBtn("🔉 Vol -", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> consumer(C_VOL_DOWN));
-        Button btnMute = iconBtn("🔇 Mute", C_BTN, C_BTN_PRESSED, Color.parseColor("#FBBF24"), view -> consumer(C_MUTE));
-        Button btnVolUp = iconBtn("🔊 Vol +", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> consumer(C_VOL_UP));
-        volRow.addView(btnVolDown);
-        volRow.addView(btnMute);
-        volRow.addView(btnVolUp);
+        volRow.addView(remoteBtn("🔉 Vol -", C_BTN, C_BTN_PRESSED, C_TEXT, view -> consumer(C_VOL_DOWN)));
+        volRow.addView(remoteBtn("🏠 Home", C_BTN, C_BTN_PRESSED, C_TEXT, view -> consumer(C_HOME)));
+        volRow.addView(remoteBtn("🔊 Vol +", C_BTN, C_BTN_PRESSED, C_TEXT, view -> consumer(C_VOL_UP)));
         v.addView(volRow);
 
-        // Playback row
-        LinearLayout playRow = new LinearLayout(this);
-        playRow.setOrientation(LinearLayout.HORIZONTAL);
-        Button btnPlay = iconBtn("⏯️ Play/Pause", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> consumer(C_PLAY_PAUSE));
-        Button btnEsc = iconBtn("☰ Menu / Esc", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> key(K_ESC));
-        playRow.addView(btnPlay);
-        playRow.addView(btnEsc);
-        v.addView(playRow);
+        // Media Navigation Row (Rewind, Menu, Fast Forward)
+        LinearLayout navRow = new LinearLayout(this);
+        navRow.setOrientation(LinearLayout.HORIZONTAL);
+        navRow.addView(remoteBtn("⏪ -10s", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> {
+            consumer(C_REWIND);
+            key(K_LEFT);
+        }));
+        navRow.addView(remoteBtn("☰ Menu", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> {
+            key(K_MENU);
+            key(K_ESC);
+        }));
+        navRow.addView(remoteBtn("⏩ +10s", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> {
+            consumer(C_FAST_FORWARD);
+            key(K_RIGHT);
+        }));
+        v.addView(navRow);
 
         return v;
     }
 
-    // ---- 2. Touchpad View (Free Mouse + TV Gesture Swipe Mode) ----
+    // ---- 2. Simple Clean Touchpad View ----
 
     private View buildTrackpadView() {
         LinearLayout v = new LinearLayout(this);
         v.setOrientation(LinearLayout.VERTICAL);
-        v.setGravity(Gravity.CENTER_HORIZONTAL);
-        v.setPadding(0, dp(14), 0, 0);
-
-        // Mode Switcher Bar inside Touchpad: Cursor Mouse vs TV Gesture Swipe
-        LinearLayout modeRow = new LinearLayout(this);
-        modeRow.setOrientation(LinearLayout.HORIZONTAL);
-        modeRow.setGravity(Gravity.CENTER);
-        modeRow.setPadding(0, 0, 0, dp(8));
-
-        btnModeToggle = customButton("🎯 Mode: Free Mouse Cursor (Laptop/PC)", C_INDIGO, C_INDIGO_PRESSED, Color.WHITE, dp(12));
-        btnModeToggle.setOnClickListener(view -> {
-            isDpadSwipeMode = !isDpadSwipeMode;
-            if (isDpadSwipeMode) {
-                btnModeToggle.setText("🕹️ Mode: TV Swipe Gestures (Smart TV)");
-                btnModeToggle.setBackground(shape(Color.parseColor("#059669"), Color.TRANSPARENT, 0, dp(12)));
-                trackpadModeDesc.setText("Swipe Up/Down/Left/Right to navigate TV tiles • Tap to OK");
-            } else {
-                btnModeToggle.setText("🎯 Mode: Free Mouse Cursor (Laptop/PC)");
-                btnModeToggle.setBackground(shape(C_INDIGO, Color.TRANSPARENT, 0, dp(12)));
-                trackpadModeDesc.setText("Drag to move mouse cursor • Tap to Left Click");
-            }
-        });
-        modeRow.addView(btnModeToggle);
-        v.addView(modeRow);
-
-        trackpadModeDesc = new TextView(this);
-        trackpadModeDesc.setText("Drag to move mouse cursor • Tap to Left Click");
-        trackpadModeDesc.setTextColor(C_TEXT_MUTED);
-        trackpadModeDesc.setTextSize(11);
-        trackpadModeDesc.setGravity(Gravity.CENTER);
-        trackpadModeDesc.setPadding(0, 0, 0, dp(10));
-        v.addView(trackpadModeDesc);
 
         // Touchpad Surface
         View pad = new View(this);
-        int padHeight = dp(270);
+        int padHeight = dp(280);
         LinearLayout.LayoutParams padParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, padHeight);
         padParams.setMargins(0, 0, 0, dp(12));
         pad.setLayoutParams(padParams);
-
-        GradientDrawable padDrawable = new GradientDrawable();
-        padDrawable.setColor(Color.parseColor("#131929"));
-        padDrawable.setCornerRadius(dp(20));
-        padDrawable.setStroke(dp(1), Color.parseColor("#38466B"));
-        pad.setBackground(padDrawable);
+        pad.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(16)));
 
         pad.setOnTouchListener(new View.OnTouchListener() {
-            private float startX, startY;
             private float lastX, lastY;
             private long downTime;
             private boolean moved = false;
-            private static final float MOUSE_SENSITIVITY = 2.4f;
-            private static final float SWIPE_THRESHOLD = 60f;
+            private static final float SENSITIVITY = 2.4f;
 
             @Override
             public boolean onTouch(View view, MotionEvent event) {
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
                         view.getParent().requestDisallowInterceptTouchEvent(true);
-                        startX = event.getX();
-                        startY = event.getY();
                         lastX = event.getX();
                         lastY = event.getY();
                         downTime = System.currentTimeMillis();
@@ -828,46 +784,24 @@ public class MainActivity extends Activity {
 
                     case MotionEvent.ACTION_MOVE:
                         view.getParent().requestDisallowInterceptTouchEvent(true);
-                        if (!isDpadSwipeMode) {
-                            // Free Mouse Cursor Mode (for Laptop, PC, Projector, TV browser)
-                            float dx = (event.getX() - lastX) * MOUSE_SENSITIVITY;
-                            float dy = (event.getY() - lastY) * MOUSE_SENSITIVITY;
-                            if (Math.abs(dx) > 0.3f || Math.abs(dy) > 0.3f) {
-                                moved = true;
-                                int sendDx = Math.max(-127, Math.min(127, Math.round(dx)));
-                                int sendDy = Math.max(-127, Math.min(127, Math.round(dy)));
-                                mouseMove(sendDx, sendDy);
-                                lastX = event.getX();
-                                lastY = event.getY();
-                            }
-                        } else {
-                            // TV Gesture Swipe Mode
-                            float totalDx = event.getX() - startX;
-                            float totalDy = event.getY() - startY;
-                            if (Math.abs(totalDx) > SWIPE_THRESHOLD || Math.abs(totalDy) > SWIPE_THRESHOLD) {
-                                moved = true;
-                                if (Math.abs(totalDx) > Math.abs(totalDy)) {
-                                    if (totalDx > 0) key(K_RIGHT);
-                                    else key(K_LEFT);
-                                } else {
-                                    if (totalDy > 0) key(K_DOWN);
-                                    else key(K_UP);
-                                }
-                                startX = event.getX();
-                                startY = event.getY();
-                            }
+                        float dx = (event.getX() - lastX) * SENSITIVITY;
+                        float dy = (event.getY() - lastY) * SENSITIVITY;
+                        if (Math.abs(dx) > 0.4f || Math.abs(dy) > 0.4f) {
+                            moved = true;
+                            int sendDx = Math.max(-127, Math.min(127, Math.round(dx)));
+                            int sendDy = Math.max(-127, Math.min(127, Math.round(dy)));
+                            mouseMove(sendDx, sendDy);
+                            lastX = event.getX();
+                            lastY = event.getY();
                         }
                         return true;
 
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
                         view.getParent().requestDisallowInterceptTouchEvent(false);
-                        if (!moved && (System.currentTimeMillis() - downTime) < 300) {
-                            if (isDpadSwipeMode) {
-                                pressOk(); // TV OK
-                            } else {
-                                mouseClick(1); // Left Click
-                            }
+                        // Tap to Click
+                        if (!moved && (System.currentTimeMillis() - downTime) < 250) {
+                            mouseClick(1);
                         }
                         return true;
                 }
@@ -876,62 +810,36 @@ public class MainActivity extends Activity {
         });
         v.addView(pad);
 
-        // Mouse click triggers
+        // Mouse Click Row
         LinearLayout clickRow = new LinearLayout(this);
         clickRow.setOrientation(LinearLayout.HORIZONTAL);
-        Button btnLeft = iconBtn("🖱️ Left Click / OK", C_INDIGO, C_INDIGO_PRESSED, Color.WHITE, view -> {
-            if (isDpadSwipeMode) pressOk();
-            else mouseClick(1);
-        });
-        Button btnRight = iconBtn("🖱️ Right Click / Back", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> {
-            if (isDpadSwipeMode) pressBack();
-            else mouseClick(2);
-        });
-        clickRow.addView(btnLeft);
-        clickRow.addView(btnRight);
+        clickRow.addView(remoteBtn("🖱️ Left Click", C_PRIMARY, C_PRIMARY_PRESSED, Color.WHITE, view -> mouseClick(1)));
+        clickRow.addView(remoteBtn("🖱️ Right Click", C_BTN, C_BTN_PRESSED, C_TEXT, view -> mouseClick(2)));
         v.addView(clickRow);
 
         // Scroll Row
         LinearLayout scrollRow = new LinearLayout(this);
         scrollRow.setOrientation(LinearLayout.HORIZONTAL);
-        Button btnScrollUp = iconBtn("▲ Scroll Up", C_BTN, C_BTN_PRESSED, C_TEXT_SECONDARY, view -> mouseScroll(3));
-        Button btnScrollDown = iconBtn("▼ Scroll Down", C_BTN, C_BTN_PRESSED, C_TEXT_SECONDARY, view -> mouseScroll(-3));
-        scrollRow.addView(btnScrollUp);
-        scrollRow.addView(btnScrollDown);
+        scrollRow.addView(remoteBtn("▲ Scroll Up", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> mouseScroll(3)));
+        scrollRow.addView(remoteBtn("▼ Scroll Down", C_BTN, C_BTN_PRESSED, C_TEXT_MUTED, view -> mouseScroll(-3)));
         v.addView(scrollRow);
 
         return v;
     }
 
-    // ---- 3. Keyboard View ----
+    // ---- 3. Simple Clean Keyboard View ----
 
     private View buildKeyboardView() {
         LinearLayout v = new LinearLayout(this);
         v.setOrientation(LinearLayout.VERTICAL);
-        v.setPadding(0, dp(16), 0, 0);
-
-        TextView hint = new TextView(this);
-        hint.setText("DIRECT TEXT & LIVE TYPING");
-        hint.setTextColor(C_TEXT_MUTED);
-        hint.setTextSize(11);
-        hint.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        hint.setLetterSpacing(0.12f);
-        hint.setPadding(dp(4), 0, 0, dp(8));
-        v.addView(hint);
-
-        // Text card
-        LinearLayout inputCard = new LinearLayout(this);
-        inputCard.setOrientation(LinearLayout.VERTICAL);
-        inputCard.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(18)));
-        inputCard.setPadding(dp(14), dp(14), dp(14), dp(14));
 
         EditText input = new EditText(this);
-        input.setHint("Type search, URL, password, or notes...");
-        input.setHintTextColor(Color.parseColor("#4B5563"));
+        input.setHint("Type text to send to TV / Laptop...");
+        input.setHintTextColor(Color.parseColor("#64748B"));
         input.setTextColor(Color.WHITE);
         input.setTextSize(15);
         input.setPadding(dp(14), dp(14), dp(14), dp(14));
-        input.setBackground(shape(Color.parseColor("#0E131F"), Color.parseColor("#2B3754"), dp(1), dp(12)));
+        input.setBackground(shape(C_CARD, C_CARD_BORDER, dp(1), dp(12)));
 
         // Live typing
         input.addTextChangedListener(new TextWatcher() {
@@ -945,14 +853,14 @@ public class MainActivity extends Activity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (isStreamingText) return;
-                String curText = s.toString();
-                if (curText.length() > prevText.length()) {
-                    String added = curText.substring(prevText.length());
+                String cur = s.toString();
+                if (cur.length() > prevText.length()) {
+                    String added = cur.substring(prevText.length());
                     for (char c : added.toCharArray()) {
                         sendChar(c);
                     }
-                } else if (curText.length() < prevText.length()) {
-                    int diff = prevText.length() - curText.length();
+                } else if (cur.length() < prevText.length()) {
+                    int diff = prevText.length() - cur.length();
                     for (int i = 0; i < diff; i++) {
                         key(K_BACKSPACE);
                     }
@@ -967,13 +875,13 @@ public class MainActivity extends Activity {
             pressOk();
             return true;
         });
+        v.addView(input);
 
-        inputCard.addView(input);
-
-        Button btnSend = customButton("🚀 STREAM FULL TEXT TO DEVICE", C_EMERALD, C_EMERALD_PRESSED, Color.WHITE, dp(12));
+        // Send Button
+        Button btnSend = cleanButton("🚀 Send Text", C_SUCCESS, C_SUCCESS_PRESSED, Color.WHITE, dp(10));
         LinearLayout.LayoutParams sendParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
-        sendParams.setMargins(0, dp(12), 0, 0);
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(46));
+        sendParams.setMargins(0, dp(10), 0, dp(16));
         btnSend.setLayoutParams(sendParams);
         btnSend.setOnClickListener(view -> {
             String text = input.getText().toString();
@@ -982,95 +890,77 @@ public class MainActivity extends Activity {
                 input.setText("");
             }
         });
-        inputCard.addView(btnSend);
-        v.addView(inputCard);
+        v.addView(btnSend);
 
-        TextView keysHeader = new TextView(this);
-        keysHeader.setText("COMMAND KEYCAPS");
-        keysHeader.setTextColor(C_TEXT_MUTED);
-        keysHeader.setTextSize(11);
-        keysHeader.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        keysHeader.setLetterSpacing(0.12f);
-        keysHeader.setPadding(dp(4), dp(20), 0, dp(8));
-        v.addView(keysHeader);
-
-        // Keycap row 1
+        // Quick Keycaps
         LinearLayout r1 = new LinearLayout(this);
         r1.setOrientation(LinearLayout.HORIZONTAL);
-        r1.addView(iconBtn("⌫ Backspace", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> key(K_BACKSPACE)));
-        r1.addView(iconBtn("↵ Enter / OK", C_INDIGO, C_INDIGO_PRESSED, Color.WHITE, view -> pressOk()));
+        r1.addView(remoteBtn("⌫ Backspace", C_BTN, C_BTN_PRESSED, C_TEXT, view -> key(K_BACKSPACE)));
+        r1.addView(remoteBtn("↵ Enter", C_PRIMARY, C_PRIMARY_PRESSED, Color.WHITE, view -> pressOk()));
         v.addView(r1);
 
-        // Keycap row 2
         LinearLayout r2 = new LinearLayout(this);
         r2.setOrientation(LinearLayout.HORIZONTAL);
-        r2.addView(iconBtn("␣ Space", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> key(K_SPACE)));
-        r2.addView(iconBtn("⇥ Tab", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> key(K_TAB)));
-        r2.addView(iconBtn("⌦ Delete", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> key(K_DELETE)));
+        r2.addView(remoteBtn("␣ Space", C_BTN, C_BTN_PRESSED, C_TEXT, view -> key(K_SPACE)));
+        r2.addView(remoteBtn("⇥ Tab", C_BTN, C_BTN_PRESSED, C_TEXT, view -> key(K_TAB)));
+        r2.addView(remoteBtn("⎋ Esc", C_BTN, C_BTN_PRESSED, C_TEXT, view -> key(K_ESC)));
         v.addView(r2);
-
-        // Keycap row 3
-        LinearLayout r3 = new LinearLayout(this);
-        r3.setOrientation(LinearLayout.HORIZONTAL);
-        r3.addView(iconBtn("⎋ Esc / Exit", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> key(K_ESC)));
-        r3.addView(iconBtn("🏠 Home", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> consumer(C_HOME)));
-        v.addView(r3);
 
         return v;
     }
 
-    // ---- Visual Component Helpers ----
+    // ---- UI Helper Builders ----
 
-    private Button customButton(String text, int normalColor, int pressedColor, int textColor, int radiusDp) {
+    private Button cleanButton(String text, int normalColor, int pressedColor, int textColor, int radiusDp) {
         Button b = new Button(this);
         b.setText(text);
         b.setTextColor(textColor);
-        b.setTextSize(12);
+        b.setTextSize(13);
         b.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         b.setBackground(buttonSelector(normalColor, pressedColor, C_CARD_BORDER, dp(1), dp(radiusDp)));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        params.setMargins(dp(3), dp(4), dp(3), dp(4));
+        params.setMargins(dp(2), dp(2), dp(2), dp(2));
         b.setLayoutParams(params);
         return b;
     }
 
-    private Button iconBtn(String text, int normalColor, int pressedColor, int textColor, View.OnClickListener listener) {
+    private Button remoteBtn(String text, int normalColor, int pressedColor, int textColor, View.OnClickListener listener) {
         Button b = new Button(this);
         b.setText(text);
         b.setTextColor(textColor);
         b.setTextSize(13);
         b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        b.setBackground(buttonSelector(normalColor, pressedColor, C_BTN_BORDER, dp(1), dp(14)));
+        b.setBackground(buttonSelector(normalColor, pressedColor, C_BTN_BORDER, dp(1), dp(12)));
         b.setOnClickListener(listener);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        params.setMargins(dp(3), dp(3), dp(3), dp(3));
+        b.setLayoutParams(params);
+        return b;
+    }
+
+    private Button dpadArrow(String arrow, View.OnClickListener listener) {
+        Button b = new Button(this);
+        b.setText(arrow);
+        b.setTextSize(18);
+        b.setTextColor(C_TEXT);
+        b.setBackground(buttonSelector(C_BTN, C_BTN_PRESSED, C_BTN_BORDER, dp(1), dp(14)));
+        b.setOnClickListener(listener);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(56), 1f);
         params.setMargins(dp(4), dp(4), dp(4), dp(4));
         b.setLayoutParams(params);
         return b;
     }
 
-    private Button dpadBtn(String arrow, View.OnClickListener listener) {
-        Button b = new Button(this);
-        b.setText(arrow);
-        b.setTextSize(18);
-        b.setTextColor(C_TEXT_PRIMARY);
-        b.setBackground(buttonSelector(C_BTN, C_BTN_PRESSED, C_BTN_BORDER, dp(1), dp(16)));
-        b.setOnClickListener(listener);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(58), 1f);
-        params.setMargins(dp(6), dp(6), dp(6), dp(6));
-        b.setLayoutParams(params);
-        return b;
-    }
-
-    private Button dpadCenterBtn(String text, View.OnClickListener listener) {
+    private Button dpadCenter(String text, View.OnClickListener listener) {
         Button b = new Button(this);
         b.setText(text);
         b.setTextSize(16);
         b.setTextColor(Color.WHITE);
         b.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-        b.setBackground(buttonSelector(C_INDIGO, C_INDIGO_PRESSED, Color.parseColor("#818CF8"), dp(2), dp(29)));
+        b.setBackground(buttonSelector(C_PRIMARY, C_PRIMARY_PRESSED, Color.parseColor("#60A5FA"), dp(2), dp(28)));
         b.setOnClickListener(listener);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(58), 1f);
-        params.setMargins(dp(6), dp(6), dp(6), dp(6));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(56), 1f);
+        params.setMargins(dp(4), dp(4), dp(4), dp(4));
         b.setLayoutParams(params);
         return b;
     }
