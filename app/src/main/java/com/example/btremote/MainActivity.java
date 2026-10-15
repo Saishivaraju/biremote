@@ -18,6 +18,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -43,17 +45,21 @@ public class MainActivity extends Activity {
     private static final int ID_CONSUMER = 2;
     private static final int ID_MOUSE = 3;
 
-    // Keyboard usages
+    // Keyboard usages (Usage Page 0x07)
     private static final byte K_RIGHT = 0x4F, K_LEFT = 0x50, K_DOWN = 0x51,
             K_UP = 0x52, K_ENTER = 0x28, K_ESC = 0x29, K_BACKSPACE = 0x2A,
             K_TAB = 0x2B, K_SPACE = 0x2C, K_DELETE = 0x4C;
 
-    // Consumer usages
+    // Consumer usages (Usage Page 0x0C)
+    // 0x41 is Consumer Menu Pick / DPAD_CENTER (crucial for Android TV apps!)
+    private static final int C_DPAD_CENTER = 0x41;
     private static final int C_POWER = 0x30, C_VOL_UP = 0xE9, C_VOL_DOWN = 0xEA,
             C_MUTE = 0xE2, C_PLAY_PAUSE = 0xCD, C_HOME = 0x223, C_BACK = 0x224;
 
     private static final byte[] DESCRIPTOR = new byte[]{
+            // -------------------------------------------------------------
             // Keyboard, report ID 1
+            // -------------------------------------------------------------
             0x05, 0x01,                    // Usage Page (Generic Desktop)
             0x09, 0x06,                    // Usage (Keyboard)
             (byte) 0xA1, 0x01,             // Collection (Application)
@@ -65,10 +71,10 @@ public class MainActivity extends Activity {
             0x25, 0x01,                    //   Logical Maximum (1)
             0x75, 0x01,                    //   Report Size (1)
             (byte) 0x95, 0x08,             //   Report Count (8)
-            (byte) 0x81, 0x02,             //   Input (Data, Variable, Absolute)
+            (byte) 0x81, 0x02,             //   Input (Data, Variable, Absolute) - modifiers
             (byte) 0x95, 0x01,             //   Report Count (1)
             0x75, 0x08,                    //   Report Size (8)
-            (byte) 0x81, 0x01,             //   Input (Constant)
+            (byte) 0x81, 0x01,             //   Input (Constant) - reserved
             (byte) 0x95, 0x06,             //   Report Count (6)
             0x75, 0x08,                    //   Report Size (8)
             0x15, 0x00,                    //   Logical Minimum (0)
@@ -76,10 +82,12 @@ public class MainActivity extends Activity {
             0x05, 0x07,                    //   Usage Page (Key Codes)
             0x19, 0x00,                    //   Usage Minimum (0)
             0x29, 0x65,                    //   Usage Maximum (101)
-            (byte) 0x81, 0x00,             //   Input (Data, Array)
+            (byte) 0x81, 0x00,             //   Input (Data, Array) - 6 keycodes
             (byte) 0xC0,                   // End Collection
 
+            // -------------------------------------------------------------
             // Consumer control, report ID 2
+            // -------------------------------------------------------------
             0x05, 0x0C,                    // Usage Page (Consumer Devices)
             0x09, 0x01,                    // Usage (Consumer Control)
             (byte) 0xA1, 0x01,             // Collection (Application)
@@ -93,14 +101,16 @@ public class MainActivity extends Activity {
             (byte) 0x81, 0x00,             //   Input (Data, Array)
             (byte) 0xC0,                   // End Collection
 
+            // -------------------------------------------------------------
             // Mouse, report ID 3
+            // -------------------------------------------------------------
             0x05, 0x01,                    // Usage Page (Generic Desktop)
             0x09, 0x02,                    // Usage (Mouse)
             (byte) 0xA1, 0x01,             // Collection (Application)
             (byte) 0x85, 0x03,             //   Report ID (3)
             0x09, 0x01,                    //   Usage (Pointer)
             (byte) 0xA1, 0x00,             //   Collection (Physical)
-            // Buttons: 3 buttons
+            // 3 Buttons
             0x05, 0x09,                    //     Usage Page (Buttons)
             0x19, 0x01,                    //     Usage Minimum (1)
             0x29, 0x03,                    //     Usage Maximum (3)
@@ -109,10 +119,10 @@ public class MainActivity extends Activity {
             (byte) 0x95, 0x03,             //     Report Count (3)
             0x75, 0x01,                    //     Report Size (1)
             (byte) 0x81, 0x02,             //     Input (Data, Variable, Absolute)
-            // Padding
+            // 5 bits padding
             (byte) 0x95, 0x01,             //     Report Count (1)
             0x75, 0x05,                    //     Report Size (5)
-            (byte) 0x81, 0x01,             //     Input (Constant)
+            (byte) 0x81, 0x03,             //     Input (Constant, Variable, Absolute)
             // X and Y
             0x05, 0x01,                    //     Usage Page (Generic Desktop)
             0x09, 0x30,                    //     Usage (X)
@@ -129,8 +139,8 @@ public class MainActivity extends Activity {
             0x75, 0x08,                    //     Report Size (8)
             (byte) 0x95, 0x01,             //     Report Count (1)
             (byte) 0x81, 0x06,             //     Input (Data, Variable, Relative)
-            (byte) 0xC0,                   //   End Collection
-            (byte) 0xC0                    // End Collection
+            (byte) 0xC0,                   //   End Collection (Physical)
+            (byte) 0xC0                    // End Collection (Application)
     };
 
     // Color Palette
@@ -160,6 +170,8 @@ public class MainActivity extends Activity {
     private View remoteContainer;
     private View trackpadContainer;
     private View keyboardContainer;
+
+    private boolean isStreamingText = false;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -194,6 +206,14 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (hid != null) {
+            checkConnectedState();
+        }
+    }
+
+    @Override
     public void onRequestPermissionsResult(int code, String[] p, int[] r) {
         boolean allGranted = true;
         for (int res : r) {
@@ -221,7 +241,7 @@ public class MainActivity extends Activity {
             @Override
             public void onServiceConnected(int profile, BluetoothProfile proxy) {
                 hid = (BluetoothHidDevice) proxy;
-                ui.postDelayed(() -> registerHid(), 300);
+                ui.postDelayed(() -> registerHid(), 250);
             }
 
             @Override
@@ -248,9 +268,9 @@ public class MainActivity extends Activity {
                     public void onAppStatusChanged(BluetoothDevice d, boolean registered) {
                         ui.post(() -> {
                             if (registered) {
-                                updateStatus("Ready • Tap Connect to pair", true);
+                                checkConnectedState();
                             } else {
-                                updateStatus("HID registration pending", false);
+                                updateStatus("HID registration pending • Tap Refresh", false);
                             }
                         });
                     }
@@ -264,14 +284,73 @@ public class MainActivity extends Activity {
                                 updateStatus("Connected to " + name, true);
                             } else if (state == BluetoothProfile.STATE_DISCONNECTED) {
                                 if (d.equals(target)) target = null;
-                                updateStatus("Disconnected", false);
+                                checkConnectedState();
                             }
                         });
+                    }
+
+                    // Handshake responses: Prevents the host (Android TV) from timing out and disconnecting!
+                    @Override
+                    public void onGetReport(BluetoothDevice device, byte type, byte id, int bufferSize) {
+                        if (hid == null) return;
+                        if (id == ID_KEYBOARD) {
+                            hid.replyReport(device, type, id, new byte[8]);
+                        } else if (id == ID_CONSUMER) {
+                            hid.replyReport(device, type, id, new byte[2]);
+                        } else if (id == ID_MOUSE) {
+                            hid.replyReport(device, type, id, new byte[4]);
+                        } else {
+                            hid.reportError(device, (byte) 0x03);
+                        }
+                    }
+
+                    @Override
+                    public void onSetReport(BluetoothDevice device, byte type, byte id, byte[] data) {
+                        if (hid != null) {
+                            hid.reportError(device, (byte) 0x00);
+                        }
                     }
                 });
 
         if (!started) {
-            updateStatus("registerApp busy • Tap Retry", false);
+            updateStatus("Service busy • Tap Re-register", false);
+        }
+    }
+
+    /**
+     * Resolves the target Bluetooth device dynamically.
+     * Prevents dropped commands if the connection state callback didn't fire.
+     */
+    private BluetoothDevice getTarget() {
+        if (target != null) return target;
+        if (hid != null) {
+            try {
+                List<BluetoothDevice> connected = hid.getConnectedDevices();
+                if (connected != null && !connected.isEmpty()) {
+                    target = connected.get(0);
+                    return target;
+                }
+            } catch (Exception ignored) {}
+        }
+        if (adapter != null) {
+            try {
+                Set<BluetoothDevice> bonded = adapter.getBondedDevices();
+                if (bonded != null && !bonded.isEmpty()) {
+                    target = bonded.iterator().next();
+                    return target;
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    private void checkConnectedState() {
+        BluetoothDevice d = getTarget();
+        if (d != null) {
+            String name = d.getName() != null ? d.getName() : d.getAddress();
+            updateStatus("Connected to " + name, true);
+        } else {
+            updateStatus("Ready • Tap Connect to pair", true);
         }
     }
 
@@ -296,7 +375,12 @@ public class MainActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle("Select Paired Device")
-                .setItems(names, (dlg, which) -> hid.connect(list.get(which)))
+                .setItems(names, (dlg, which) -> {
+                    target = list.get(which);
+                    hid.connect(target);
+                    String name = target.getName() != null ? target.getName() : target.getAddress();
+                    updateStatus("Connecting to " + name + "...", true);
+                })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
@@ -308,16 +392,34 @@ public class MainActivity extends Activity {
     }
 
     private void sendKey(byte usage, byte modifier) {
-        if (hid == null || target == null) return;
-        hid.sendReport(target, ID_KEYBOARD, new byte[]{modifier, 0, usage, 0, 0, 0, 0, 0});
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_KEYBOARD, new byte[]{modifier, 0, usage, 0, 0, 0, 0, 0});
         ui.postDelayed(() -> {
-            if (hid != null && target != null)
-                hid.sendReport(target, ID_KEYBOARD, new byte[8]);
+            if (hid != null && d != null)
+                hid.sendReport(d, ID_KEYBOARD, new byte[8]);
         }, 40);
     }
 
+    /**
+     * OK Button Fix:
+     * Sends BOTH DPAD_CENTER (Consumer 0x41) AND Keyboard Enter (0x28).
+     * This guarantees it selects cards on Netflix/YouTube TV apps AND web forms/dialogs!
+     */
+    private void pressOk() {
+        consumer(C_DPAD_CENTER);
+        key(K_ENTER);
+    }
+
+    private void pressBack() {
+        consumer(C_BACK);
+        key(K_ESC);
+    }
+
     private void sendString(String text) {
-        if (text == null || text.isEmpty() || hid == null || target == null) return;
+        BluetoothDevice d = getTarget();
+        if (text == null || text.isEmpty() || hid == null || d == null) return;
+        isStreamingText = true;
         new Thread(() -> {
             for (int i = 0; i < text.length(); i++) {
                 char c = text.charAt(i);
@@ -326,10 +428,14 @@ public class MainActivity extends Activity {
                     Thread.sleep(35);
                 } catch (InterruptedException ignored) {}
             }
+            isStreamingText = false;
         }).start();
     }
 
     private void sendChar(char c) {
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+
         byte modifier = 0;
         byte keycode = 0;
 
@@ -383,13 +489,13 @@ public class MainActivity extends Activity {
             }
         }
 
-        if (keycode != 0 && hid != null && target != null) {
-            hid.sendReport(target, ID_KEYBOARD, new byte[]{modifier, 0, keycode, 0, 0, 0, 0, 0});
+        if (keycode != 0) {
+            hid.sendReport(d, ID_KEYBOARD, new byte[]{modifier, 0, keycode, 0, 0, 0, 0, 0});
             try {
                 Thread.sleep(20);
             } catch (InterruptedException ignored) {}
-            if (hid != null && target != null) {
-                hid.sendReport(target, ID_KEYBOARD, new byte[8]);
+            if (hid != null && d != null) {
+                hid.sendReport(d, ID_KEYBOARD, new byte[8]);
             }
         }
     }
@@ -397,32 +503,36 @@ public class MainActivity extends Activity {
     // ---- Media & Mouse ----
 
     private void consumer(int usage) {
-        if (hid == null || target == null) return;
-        hid.sendReport(target, ID_CONSUMER,
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_CONSUMER,
                 new byte[]{(byte) (usage & 0xFF), (byte) ((usage >> 8) & 0xFF)});
         ui.postDelayed(() -> {
-            if (hid != null && target != null)
-                hid.sendReport(target, ID_CONSUMER, new byte[]{0, 0});
+            if (hid != null && d != null)
+                hid.sendReport(d, ID_CONSUMER, new byte[]{0, 0});
         }, 50);
     }
 
     private void mouseMove(int dx, int dy) {
-        if (hid == null || target == null) return;
-        hid.sendReport(target, ID_MOUSE, new byte[]{0, (byte) dx, (byte) dy, 0});
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_MOUSE, new byte[]{0, (byte) dx, (byte) dy, 0});
     }
 
     private void mouseClick(int button) {
-        if (hid == null || target == null) return;
-        hid.sendReport(target, ID_MOUSE, new byte[]{(byte) button, 0, 0, 0});
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_MOUSE, new byte[]{(byte) button, 0, 0, 0});
         ui.postDelayed(() -> {
-            if (hid != null && target != null)
-                hid.sendReport(target, ID_MOUSE, new byte[]{0, 0, 0, 0});
+            if (hid != null && d != null)
+                hid.sendReport(d, ID_MOUSE, new byte[]{0, 0, 0, 0});
         }, 40);
     }
 
     private void mouseScroll(int wheel) {
-        if (hid == null || target == null) return;
-        hid.sendReport(target, ID_MOUSE, new byte[]{0, 0, 0, (byte) wheel});
+        BluetoothDevice d = getTarget();
+        if (hid == null || d == null) return;
+        hid.sendReport(d, ID_MOUSE, new byte[]{0, 0, 0, (byte) wheel});
     }
 
     // ---- UI Builder ----
@@ -563,7 +673,7 @@ public class MainActivity extends Activity {
         topBar.setOrientation(LinearLayout.HORIZONTAL);
         Button btnPower = iconBtn("⏻ Power", C_CRIMSON, C_CRIMSON_PRESSED, Color.WHITE, view -> consumer(C_POWER));
         Button btnHome = iconBtn("🏠 Home", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> consumer(C_HOME));
-        Button btnBack = iconBtn("↩ Back", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> consumer(C_BACK));
+        Button btnBack = iconBtn("↩ Back", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> pressBack());
         topBar.addView(btnPower);
         topBar.addView(btnHome);
         topBar.addView(btnBack);
@@ -584,7 +694,8 @@ public class MainActivity extends Activity {
         dpadCard.addView(dpadRow(blank(), dpadBtn("▲", view -> key(K_UP)), blank()));
         // Left - OK - Right
         Button btnLeft = dpadBtn("◀", view -> key(K_LEFT));
-        Button btnOk = dpadCenterBtn("OK", view -> key(K_ENTER));
+        // Fixed OK: Triggers both DPAD_CENTER (Consumer 0x41) and Enter (0x28)
+        Button btnOk = dpadCenterBtn("OK", view -> pressOk());
         Button btnRight = dpadBtn("▶", view -> key(K_RIGHT));
         dpadCard.addView(dpadRow(btnLeft, btnOk, btnRight));
         // Down
@@ -646,16 +757,18 @@ public class MainActivity extends Activity {
         padDrawable.setStroke(dp(1), Color.parseColor("#38466B"));
         pad.setBackground(padDrawable);
 
+        // Touch handling with requestDisallowInterceptTouchEvent so ScrollView doesn't hijack swipes!
         pad.setOnTouchListener(new View.OnTouchListener() {
             private float lastX, lastY;
             private long downTime;
             private boolean moved = false;
-            private static final float SENSITIVITY = 1.35f;
+            private static final float SENSITIVITY = 1.4f;
 
             @Override
             public boolean onTouch(View view, MotionEvent event) {
-                switch (event.getAction()) {
+                switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
+                        view.getParent().requestDisallowInterceptTouchEvent(true);
                         lastX = event.getX();
                         lastY = event.getY();
                         downTime = System.currentTimeMillis();
@@ -663,9 +776,10 @@ public class MainActivity extends Activity {
                         return true;
 
                     case MotionEvent.ACTION_MOVE:
+                        view.getParent().requestDisallowInterceptTouchEvent(true);
                         float dx = (event.getX() - lastX) * SENSITIVITY;
                         float dy = (event.getY() - lastY) * SENSITIVITY;
-                        if (Math.abs(dx) > 0.4f || Math.abs(dy) > 0.4f) {
+                        if (Math.abs(dx) > 0.3f || Math.abs(dy) > 0.3f) {
                             moved = true;
                             int sendDx = Math.max(-127, Math.min(127, Math.round(dx)));
                             int sendDy = Math.max(-127, Math.min(127, Math.round(dy)));
@@ -676,8 +790,10 @@ public class MainActivity extends Activity {
                         return true;
 
                     case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        view.getParent().requestDisallowInterceptTouchEvent(false);
                         if (!moved && (System.currentTimeMillis() - downTime) < 300) {
-                            mouseClick(1);
+                            mouseClick(1); // Tap to Left Click
                         }
                         return true;
                 }
@@ -715,7 +831,7 @@ public class MainActivity extends Activity {
         v.setPadding(0, dp(16), 0, 0);
 
         TextView hint = new TextView(this);
-        hint.setText("DIRECT TEXT STREAMING");
+        hint.setText("DIRECT TEXT & LIVE TYPING");
         hint.setTextColor(C_TEXT_MUTED);
         hint.setTextSize(11);
         hint.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
@@ -730,15 +846,52 @@ public class MainActivity extends Activity {
         inputCard.setPadding(dp(14), dp(14), dp(14), dp(14));
 
         EditText input = new EditText(this);
-        input.setHint("Type movie title, password, or URL...");
+        input.setHint("Type or paste movie title, URL, or password...");
         input.setHintTextColor(Color.parseColor("#4B5563"));
         input.setTextColor(Color.WHITE);
         input.setTextSize(15);
         input.setPadding(dp(14), dp(14), dp(14), dp(14));
         input.setBackground(shape(Color.parseColor("#0E131F"), Color.parseColor("#2B3754"), dp(1), dp(12)));
+
+        // Live typing: As you type or delete on your phone keyboard, it sends keys live!
+        input.addTextChangedListener(new TextWatcher() {
+            private String prevText = "";
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                prevText = s.toString();
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (isStreamingText) return;
+                String curText = s.toString();
+                if (curText.length() > prevText.length()) {
+                    String added = curText.substring(prevText.length());
+                    for (char c : added.toCharArray()) {
+                        sendChar(c);
+                    }
+                } else if (curText.length() < prevText.length()) {
+                    int diff = prevText.length() - curText.length();
+                    for (int i = 0; i < diff; i++) {
+                        key(K_BACKSPACE);
+                    }
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // Pressing Enter on phone soft keyboard triggers OK / Search on TV
+        input.setOnEditorActionListener((textView, actionId, keyEvent) -> {
+            pressOk();
+            return true;
+        });
+
         inputCard.addView(input);
 
-        Button btnSend = customButton("🚀 STREAM TEXT TO TV", C_EMERALD, C_EMERALD_PRESSED, Color.WHITE, dp(12));
+        Button btnSend = customButton("🚀 STREAM FULL TEXT TO TV", C_EMERALD, C_EMERALD_PRESSED, Color.WHITE, dp(12));
         LinearLayout.LayoutParams sendParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
         sendParams.setMargins(0, dp(12), 0, 0);
@@ -766,7 +919,7 @@ public class MainActivity extends Activity {
         LinearLayout r1 = new LinearLayout(this);
         r1.setOrientation(LinearLayout.HORIZONTAL);
         r1.addView(iconBtn("⌫ Backspace", C_BTN, C_BTN_PRESSED, C_TEXT_PRIMARY, view -> key(K_BACKSPACE)));
-        r1.addView(iconBtn("↵ Enter", C_INDIGO, C_INDIGO_PRESSED, Color.WHITE, view -> key(K_ENTER)));
+        r1.addView(iconBtn("↵ Enter / OK", C_INDIGO, C_INDIGO_PRESSED, Color.WHITE, view -> pressOk()));
         v.addView(r1);
 
         // Keycap row 2
